@@ -1,0 +1,165 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    @apply bg-surface text-slate;
+  }
+}
+
+@layer components {
+  /* Card styles */
+  .card {
+    @apply bg-card rounded-xl shadow-soft p-6 border border-gray-100 hover:shadow-shadow transition-shadow duration-200;
+  }
+
+  /* CTA Button */
+  .btn-cta {
+    @apply bg-primary hover:bg-primary-dark text-white font-semibold py-2.5 px-6 rounded-lg 
+           transition-all duration-200 shadow-md hover:shadow-lg active:scale-95
+           focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2;
+  }
+
+  .btn-cta:disabled {
+    @apply opacity-50 cursor-not-allowed hover:bg-primary active:scale-100;
+  }
+
+  /* Secondary Button */
+  .btn-secondary {
+    @apply bg-white hover:bg-gray-50 text-slate font-medium py-2.5 px-6 rounded-lg 
+           border border-gray-300 transition-all duration-200 shadow-sm hover:shadow-md
+           focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2;
+  }
+
+  /* Danger Button */
+  .btn-danger {
+    @apply bg-accent-coral hover:bg-red-600 text-white font-semibold py-2.5 px-6 rounded-lg 
+           transition-all duration-200 shadow-md hover:shadow-lg active:scale-95
+           focus:outline-none focus:ring-2 focus:ring-accent-coral focus:ring-offset-2;
+  }
+
+  /* Icon Button */
+  .btn-icon {
+    @apply p-2 rounded-lg hover:bg-gray-100 transition-colors duration-150
+           focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-1;
+  }
+
+  /* Glow effect */
+  .glow-primary {
+    @apply shadow-neon;
+  }
+
+  /* Focus outline */
+  .focus-outline {
+    @apply focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2;
+  }
+
+  /* Gradient backgrounds */
+  .grad-primary {
+    @apply bg-gradient-to-r from-primary to-accent-teal;
+  }
+
+  .grad-gold {
+    @apply bg-gradient-to-r from-gold to-yellow-500;
+  }
+
+  /* Input fields */
+  .input-field {
+    @apply w-full px-4 py-2.5 border border-gray-300 rounded-lg focus-outline
+           bg-white text-slate placeholder-gray-400 transition-all duration-150;
+  }
+
+  /* Text area */
+  .textarea-field {
+    @apply w-full px-4 py-2.5 border border-gray-300 rounded-lg focus-outline
+           bg-white text-slate placeholder-gray-400 min-h-[100px]
+           transition-all duration-150;
+    resize: vertical;
+  }
+
+  /* Select field */
+  .select-field {
+    @apply w-full px-4 py-2.5 border border-gray-300 rounded-lg focus-outline
+           bg-white text-slate cursor-pointer transition-all duration-150;
+  }
+
+  /* Label */
+  .label-field {
+    @apply block text-sm font-semibold text-slate mb-2;
+  }
+
+  /* Badge */
+  .badge {
+    @apply inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold;
+  }
+
+  .badge-success {
+    @apply badge bg-green-100 text-green-800;
+  }
+
+  .badge-warning {
+    @apply badge bg-yellow-100 text-yellow-800;
+  }
+
+  .badge-info {
+    @apply badge bg-blue-100 text-blue-800;
+  }
+
+  .badge-danger {
+    @apply badge bg-red-100 text-red-800;
+  }
+
+  /* Toast notifications */
+  .toast {
+    @apply fixed bottom-6 right-6 px-6 py-4 rounded-lg shadow-lg text-white font-medium
+           animate-slide-up z-50;
+  }
+
+  .toast-success {
+    @apply toast bg-success;
+  }
+
+  .toast-error {
+    @apply toast bg-accent-coral;
+  }
+
+  .toast-info {
+    @apply toast bg-primary;
+  }
+}
+
+@layer utilities {
+  .animate-slide-up {
+    animation: slideUp 0.3s ease-out;
+  }
+
+  .animate-spin-slow {
+    animation: spin 1s linear infinite;
+  }
+
+  @keyframes slideUp {
+    from {
+      transform: translateY(100%);
+      opacity: 0;
+    }
+    to {
+      transform: translateY(0);
+      opacity: 1;
+    }
+  }
+}
+
+/* Scrollbar styling */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  @apply bg-gray-100;
+}
+
+::-webkit-scrollbar-thumb {
+  @apply bg-gray-400 rounded-full hover:bg-gray-500;
+}
