@@ -1,17 +1,34 @@
 import React, { useState, useRef, useEffect } from "react";
-import { FaBell } from "react-icons/fa";
+import { FaBell, FaUserCircle } from "react-icons/fa";
 import { motion, AnimatePresence } from "framer-motion";
-import Notifications from "../components/Notifications";
+import "./Navbar.css";
 
 function Navbar() {
   const [showNotifications, setShowNotifications] = useState(false);
-  const notifRef = useRef(null);
+  const [showProfile, setShowProfile] = useState(false);
+  const notifRef = useRef();
+  const profileRef = useRef();
 
-  // Close popup when clicking outside
+  const handleNotifClick = () => {
+    setShowNotifications(!showNotifications);
+    setShowProfile(false);
+  };
+
+  const handleProfileClick = () => {
+    setShowProfile(!showProfile);
+    setShowNotifications(false);
+  };
+
   useEffect(() => {
     const handleClickOutside = (event) => {
-      if (notifRef.current && !notifRef.current.contains(event.target)) {
+      if (
+        notifRef.current &&
+        !notifRef.current.contains(event.target) &&
+        profileRef.current &&
+        !profileRef.current.contains(event.target)
+      ) {
         setShowNotifications(false);
+        setShowProfile(false);
       }
     };
     document.addEventListener("mousedown", handleClickOutside);
@@ -19,63 +36,49 @@ function Navbar() {
   }, []);
 
   return (
-    <nav className="navbar" style={styles.navbar}>
-      <div className="navbar-left">
-        <h2>Coaching Programme</h2>
-      </div>
+    <nav className="navbar">
+      <h2 className="navbar-title">Coaching Programme Portal</h2>
+      <div className="navbar-icons">
+        {/* Notification Icon */}
+        <div className="icon-container" ref={notifRef}>
+          <FaBell className="icon" onClick={handleNotifClick} />
+          <AnimatePresence>
+            {showNotifications && (
+              <motion.div
+                className="dropdown notification-dropdown"
+                initial={{ opacity: 0, y: -15 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -15 }}
+                transition={{ duration: 0.25, ease: "easeOut" }}
+              >
+                <h4>Notifications</h4>
+                <p>No new notifications</p>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
 
-      <div className="navbar-right" ref={notifRef} style={styles.navRight}>
-        <FaBell
-          className="icon"
-          onClick={() => setShowNotifications(!showNotifications)}
-          style={styles.bellIcon}
-        />
-
-        {/* Animated popup */}
-        <AnimatePresence>
-          {showNotifications && (
-            <motion.div
-              key="notif-popup"
-              initial={{ opacity: 0, y: -10 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -10 }}
-              transition={{ duration: 0.25, ease: "easeInOut" }}
-              style={styles.popupWrapper}
-            >
-              <Notifications />
-            </motion.div>
-          )}
-        </AnimatePresence>
+        {/* Profile Icon */}
+        <div className="icon-container" ref={profileRef}>
+          <FaUserCircle className="icon" onClick={handleProfileClick} />
+          <AnimatePresence>
+            {showProfile && (
+              <motion.div
+                className="dropdown profile-dropdown"
+                initial={{ opacity: 0, scale: 0.9, y: -10 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.9, y: -10 }}
+                transition={{ duration: 0.25, ease: "easeOut" }}
+              >
+                <h4>Programme Manager</h4>
+                <button className="logout-btn">Logout</button>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
       </div>
     </nav>
   );
 }
-
-const styles = {
-  navbar: {
-    display: "flex",
-    justifyContent: "space-between",
-    alignItems: "center",
-    backgroundColor: "#fff",
-    padding: "10px 20px",
-    boxShadow: "0 2px 5px rgba(0,0,0,0.1)",
-    position: "relative",
-    zIndex: 10,
-  },
-  navRight: {
-    position: "relative",
-  },
-  bellIcon: {
-    cursor: "pointer",
-    fontSize: "20px",
-    color: "#1E3A8A",
-  },
-  popupWrapper: {
-    position: "absolute",
-    top: "40px",
-    right: "0",
-    zIndex: 100,
-  },
-};
 
 export default Navbar;

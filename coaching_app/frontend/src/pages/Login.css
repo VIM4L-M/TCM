@@ -1,0 +1,111 @@
+/* Full Page Styling */
+body {
+  margin: 0;
+  padding: 0;
+  height: 100vh;
+  background: linear-gradient(135deg, #1e3c72, #2a5298);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  font-family: "Poppins", sans-serif;
+}
+
+/* Login Box */
+.login-container {
+  background: #ffffff;
+  width: 420px;
+  padding: 50px 40px;
+  border-radius: 20px;
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.15);
+  text-align: center;
+}
+
+/* Logo */
+.login-logo {
+  width: 65px;
+  margin-bottom: 10px;
+}
+
+/* Title */
+h2 {
+  font-size: 22px;
+  font-weight: 600;
+  color: #1e3c72;
+  margin-bottom: 30px;
+}
+
+/* Form */
+form {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+}
+
+/* Input Fields */
+input[type="email"],
+input[type="password"] {
+  width: 100%;
+  padding: 12px 15px;
+  border: 1px solid #dcdde1;
+  border-radius: 10px;
+  background-color: #f1f5ff;
+  font-size: 15px;
+  margin-bottom: 18px;
+  transition: all 0.3s ease;
+  box-sizing: border-box;
+}
+
+input:focus {
+  outline: none;
+  border-color: #1e90ff;
+  box-shadow: 0 0 8px rgba(30, 144, 255, 0.3);
+}
+
+/* Login Button */
+button {
+  width: 100%;
+  padding: 12px 0;
+  background: #1e3c72;
+  color: white;
+  font-weight: 600;
+  font-size: 15px;
+  border: none;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: 0.3s ease;
+}
+
+button:hover {
+  background: #2a5298;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 12px rgba(30, 60, 114, 0.2);
+}
+
+/* Optional: Forgot Password link */
+.forgot-password {
+  display: block;
+  margin-top: 12px;
+  color: white;
+  font-size: 14px;
+  text-decoration: none;
+  transition: 0.2s ease;
+}
+
+.forgot-password:hover {
+  background: #2a5298;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 12px rgba(30, 60, 114, 0.2);
+}
+
+/* Responsive Design */
+@media (max-width: 450px) {
+  .login-container {
+    width: 90%;
+    padding: 40px 25px;
+  }
+
+  h2 {
+    font-size: 20px;
+  }
+}
