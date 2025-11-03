@@ -1,16 +1,33 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Table, TableHead, TableRow, TableCell, TableBody, Checkbox, Paper } from "@mui/material";
+import api from "../services/api";
 
 function AttendanceTable() {
-  const [records, setRecords] = useState([
-    { id: 1, name: "Arun Kumar", attended: true },
-    { id: 2, name: "Sneha R", attended: false },
-  ]);
+  const [records, setRecords] = useState([]);
 
-  const toggleAttendance = (id) => {
-    setRecords((prev) =>
-      prev.map((rec) => (rec.id === id ? { ...rec, attended: !rec.attended } : rec))
-    );
+  useEffect(() => {
+    fetchAttendance();
+  }, []);
+
+  const fetchAttendance = async () => {
+    try {
+      const res = await api.get("attendance/");
+      setRecords(res.data);
+    } catch (err) {
+      console.error("Error fetching attendance:", err);
+    }
+  };
+
+  const toggleAttendance = async (id, currentStatus) => {
+    try {
+      const updated = records.map((r) =>
+        r.id === id ? { ...r, is_present: !currentStatus } : r
+      );
+      setRecords(updated);
+      await api.patch(`attendance/${id}/`, { is_present: !currentStatus });
+    } catch (err) {
+      console.error("Error updating attendance:", err);
+    }
   };
 
   return (
@@ -18,20 +35,20 @@ function AttendanceTable() {
       <Table>
         <TableHead sx={{ backgroundColor: "#e2e8f0" }}>
           <TableRow>
-            <TableCell>Child ID</TableCell>
-            <TableCell>Child Name</TableCell>
+            <TableCell>Session</TableCell>
+            <TableCell>Child</TableCell>
             <TableCell>Present</TableCell>
           </TableRow>
         </TableHead>
         <TableBody>
-          {records.map((child) => (
-            <TableRow key={child.id}>
-              <TableCell>{child.id}</TableCell>
-              <TableCell>{child.name}</TableCell>
+          {records.map((rec) => (
+            <TableRow key={rec.id}>
+              <TableCell>{rec.session_title || rec.session}</TableCell>
+              <TableCell>{rec.child_name || rec.child}</TableCell>
               <TableCell>
                 <Checkbox
-                  checked={child.attended}
-                  onChange={() => toggleAttendance(child.id)}
+                  checked={rec.is_present}
+                  onChange={() => toggleAttendance(rec.id, rec.is_present)}
                   color="success"
                 />
               </TableCell>

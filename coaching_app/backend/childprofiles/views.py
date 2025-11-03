@@ -1,11 +1,7 @@
-from rest_framework import generics
+from rest_framework import viewsets
 from .models import ChildProfile
-from .serializers import ChildSerializer
+from .serializers import ChildProfileSerializer
 
-class ChildListCreate(generics.ListCreateAPIView):
+class ChildProfileViewSet(viewsets.ModelViewSet):
     queryset = ChildProfile.objects.all()
-    serializer_class = ChildSerializer
-
-class ChildDetail(generics.RetrieveUpdateDestroyAPIView):
-    queryset = ChildProfile.objects.all()
-    serializer_class = ChildSerializer
+    serializer_class = ChildProfileSerializer

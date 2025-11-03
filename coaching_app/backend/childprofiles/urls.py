@@ -1,7 +1,10 @@
-from django.urls import path
-from . import views
+from django.urls import path, include
+from rest_framework.routers import DefaultRouter
+from .views import ChildProfileViewSet
+
+router = DefaultRouter()
+router.register('', ChildProfileViewSet)
 
 urlpatterns = [
-    path('', views.ChildListCreate.as_view(), name='child-list'),
-    path('<int:pk>/', views.ChildDetail.as_view(), name='child-detail'),
+    path('', include(router.urls)),
 ]

@@ -9,4 +9,7 @@ urlpatterns = [
     path('api/coaches/', include('coaches.urls')),
     path('api/homevisits/', include('homevisits.urls')),
     path('api/reports/', include('reports.urls')),
+    path('api/', include('notifications.urls')),
+    path('api/reports/', include('reports.urls')),
+
 ]
