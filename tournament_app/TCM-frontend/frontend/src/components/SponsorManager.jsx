@@ -1,5 +1,5 @@
 import React from 'react'
-import { generateId } from '../data/seed'
+// import { generateId } from '../data/seed'
 
 const SponsorManager = ({ sponsors = [], onChange }) => {
   const addSponsor = () => {

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { fetchTournaments, deleteTournament, createSnapshot, publishTournament } from '../api'
-import DemoBanner from '../components/DemoBanner'
+// import DemoBanner from '../components/DemoBanner'
 import LoadingSpinner from '../components/LoadingSpinner'
 import Toast from '../components/Toast'
 import { useToast } from '../hooks/useToast'
@@ -145,7 +145,7 @@ const Dashboard = () => {
 
   return (
     <div className="max-w-7xl mx-auto">
-      {demoMode && <DemoBanner onDismiss={() => setDemoMode(false)} />}
+      {/* {demoMode && <DemoBanner onDismiss={() => setDemoMode(false)} />} */}
 
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-8">

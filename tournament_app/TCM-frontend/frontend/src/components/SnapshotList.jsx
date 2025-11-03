@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { fetchSnapshots, createSnapshot } from '../api'
-import { seedSnapshots } from '../data/seed'
+// import { seedSnapshots } from '../data/seed'
 import LoadingSpinner from './LoadingSpinner'
 
 const SnapshotList = ({ tournamentId }) => {
