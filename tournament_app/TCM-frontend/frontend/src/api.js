@@ -1,14 +1,18 @@
-// API integration layer for Django backend
-const API_BASE = import.meta.env.VITE_API_BASE || 'http://127.0.0.1:8000/api'
-export const WS_BASE = import.meta.env.VITE_WS_BASE || 'ws://127.0.0.1:8000'
+// API integration layer with fetch stubs
+// Falls back to seed data when backend is unavailable
+
+const API_BASE = import.meta.env.VITE_API_BASE || 'http://localhost:8000/api'
+export const WS_BASE = import.meta.env.VITE_WS_BASE || 'ws://localhost:8000'
 
 // Helper to construct headers
 const getHeaders = (token = null) => {
   const headers = {
     'Content-Type': 'application/json',
   }
-  if (token) {
-    headers['Authorization'] = `Bearer ${token}`
+  // Get token from parameter or localStorage
+  const authToken = token || localStorage.getItem('auth_token')
+  if (authToken) {
+    headers['Authorization'] = `Token ${authToken}`
   }
   return headers
 }
@@ -19,49 +23,39 @@ const handleResponse = async (response) => {
     const error = await response.json().catch(() => ({ detail: 'Request failed' }))
     throw new Error(error.detail || `HTTP ${response.status}`)
   }
-  // Handle 204 No Content
-  if (response.status === 204) {
-    return { success: true }
-  }
   return response.json()
 }
 
 /**
  * Fetch all tournaments
- * Django returns: { count, next, previous, results: [...] } (paginated)
+ * Expected response: Array of tournament objects
  */
-export const fetchTournaments = async (token = null, status = null, search = null) => {
+export const fetchTournaments = async (token = null) => {
   try {
-    let url = `${API_BASE}/tournaments/`
-    const params = new URLSearchParams()
-    
-    if (status && status !== 'all') {
-      params.append('status', status.toUpperCase())
-    }
-    if (search) {
-      params.append('search', search)
-    }
-    
-    if (params.toString()) {
-      url += `?${params.toString()}`
-    }
-    
-    const response = await fetch(url, {
+    const response = await fetch(`${API_BASE}/tournaments/`, {
       method: 'GET',
       headers: getHeaders(token),
     })
     const data = await handleResponse(response)
-    // Return results array if paginated, otherwise return data
-    return data.results || data
+    
+    // Handle paginated response from Django REST Framework
+    const tournaments = data.results || data
+    
+    // Map backend field names to frontend field names
+    return tournaments.map(tournament => ({
+      ...tournament,
+      title: tournament.name, // Frontend uses 'title' instead of 'name'
+    }))
   } catch (error) {
-    console.error('Error fetching tournaments:', error.message)
-    throw error
+    console.warn('Backend unavailable, using seed data:', error.message)
+    // Return null to signal fallback is needed
+    return null
   }
 }
 
 /**
  * Fetch a single tournament by ID
- * Django returns: Tournament object with nested teams, fields, matches
+ * Expected response: Tournament object with full details
  */
 export const fetchTournament = async (id, token = null) => {
   try {
@@ -69,93 +63,93 @@ export const fetchTournament = async (id, token = null) => {
       method: 'GET',
       headers: getHeaders(token),
     })
-    return await handleResponse(response)
+    const data = await handleResponse(response)
+    // Map backend field names to frontend field names
+    return {
+      ...data,
+      title: data.name, // Frontend uses 'title' instead of 'name'
+    }
   } catch (error) {
-    console.error('Error fetching tournament:', error.message)
-    throw error
+    console.warn('Backend unavailable, using seed data:', error.message)
+    return null
   }
 }
 
 /**
  * Create a new tournament
- * Django expects: { name, location, city, state, country, start_date, end_date, status, description, rules }
- * Django returns: Created tournament object
+ * Expected request body: { title, slug, description, rules, start_date, end_date, ... }
+ * Expected response: Created tournament object with ID
  */
 export const createTournament = async (tournamentData, token = null) => {
   try {
-    // Map frontend fields to Django fields
-    const djangoData = {
-      name: tournamentData.title || tournamentData.name,
-      location: tournamentData.location || tournamentData.venue || '',
-      city: tournamentData.city || '',
-      state: tournamentData.state || '',
-      country: tournamentData.country || '',
-      start_date: tournamentData.start_date || tournamentData.startDate,
-      end_date: tournamentData.end_date || tournamentData.endDate,
-      status: (tournamentData.status || 'DRAFT').toUpperCase(),
-      description: tournamentData.description || '',
-      rules: tournamentData.rules || '',
+    // Map frontend field names to backend field names
+    const backendData = {
+      ...tournamentData,
+      name: tournamentData.title, // Backend uses 'name' instead of 'title'
     }
+    delete backendData.title // Remove the frontend field name
     
     const response = await fetch(`${API_BASE}/tournaments/`, {
       method: 'POST',
       headers: getHeaders(token),
-      body: JSON.stringify(djangoData),
+      body: JSON.stringify(backendData),
     })
     return await handleResponse(response)
   } catch (error) {
-    console.error('Error creating tournament:', error.message)
-    throw error
+    console.warn('Backend unavailable, simulating create:', error.message)
+    // Return demo object for client-side simulation
+    return {
+      ...tournamentData,
+      id: 'demo-' + Date.now(),
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+      stats: {
+        teams_registered: 0,
+        matches_scheduled: 0,
+        fields_count: tournamentData.fields?.length || 0
+      }
+    }
   }
 }
 
 /**
  * Update an existing tournament
- * Django expects: Partial tournament object
+ * Expected request body: Partial tournament object with fields to update
+ * Expected response: Updated tournament object
  */
 export const updateTournament = async (id, tournamentData, token = null) => {
   try {
-    // Map frontend fields to Django fields
-    const djangoData = {}
-    if (tournamentData.title || tournamentData.name) {
-      djangoData.name = tournamentData.title || tournamentData.name
+    // Map frontend field names to backend field names
+    const backendData = {
+      ...tournamentData,
+      name: tournamentData.title, // Backend uses 'name' instead of 'title'
     }
-    if (tournamentData.location || tournamentData.venue) {
-      djangoData.location = tournamentData.location || tournamentData.venue
-    }
-    if (tournamentData.city) djangoData.city = tournamentData.city
-    if (tournamentData.state) djangoData.state = tournamentData.state
-    if (tournamentData.country) djangoData.country = tournamentData.country
-    if (tournamentData.start_date || tournamentData.startDate) {
-      djangoData.start_date = tournamentData.start_date || tournamentData.startDate
-    }
-    if (tournamentData.end_date || tournamentData.endDate) {
-      djangoData.end_date = tournamentData.end_date || tournamentData.endDate
-    }
-    if (tournamentData.status) {
-      djangoData.status = tournamentData.status.toUpperCase()
-    }
-    if (tournamentData.description !== undefined) {
-      djangoData.description = tournamentData.description
-    }
-    if (tournamentData.rules !== undefined) {
-      djangoData.rules = tournamentData.rules
-    }
+    delete backendData.title // Remove the frontend field name
     
     const response = await fetch(`${API_BASE}/tournaments/${id}/`, {
       method: 'PATCH',
       headers: getHeaders(token),
-      body: JSON.stringify(djangoData),
+      body: JSON.stringify(backendData),
     })
-    return await handleResponse(response)
+    const data = await handleResponse(response)
+    // Map backend field names to frontend field names
+    return {
+      ...data,
+      title: data.name,
+    }
   } catch (error) {
-    console.error('Error updating tournament:', error.message)
-    throw error
+    console.warn('Backend unavailable, simulating update:', error.message)
+    return {
+      ...tournamentData,
+      id,
+      updated_at: new Date().toISOString(),
+    }
   }
 }
 
 /**
  * Delete a tournament
+ * Expected response: 204 No Content or success message
  */
 export const deleteTournament = async (id, token = null) => {
   try {
@@ -163,49 +157,44 @@ export const deleteTournament = async (id, token = null) => {
       method: 'DELETE',
       headers: getHeaders(token),
     })
+    if (response.status === 204) {
+      return { success: true }
+    }
     return await handleResponse(response)
   } catch (error) {
-    console.error('Error deleting tournament:', error.message)
-    throw error
-  }
-}
-
-/**
- * Publish a tournament (change status to PUBLISHED)
- */
-export const publishTournament = async (id, token = null) => {
-  try {
-    const response = await fetch(`${API_BASE}/tournaments/${id}/publish/`, {
-      method: 'POST',
-      headers: getHeaders(token),
-    })
-    return await handleResponse(response)
-  } catch (error) {
-    console.error('Error publishing tournament:', error.message)
-    throw error
+    console.warn('Backend unavailable, simulating delete:', error.message)
+    return { success: true }
   }
 }
 
 /**
  * Create a snapshot of tournament state
- * Django expects: { notes: string }
+ * Expected request body: { description?: string }
+ * Expected response: { id, tournament_id, created_at, created_by, data: {...} }
  */
 export const createSnapshot = async (tournamentId, description = '', token = null) => {
   try {
     const response = await fetch(`${API_BASE}/tournaments/${tournamentId}/snapshot/`, {
       method: 'POST',
       headers: getHeaders(token),
-      body: JSON.stringify({ notes: description }),
+      body: JSON.stringify({ description }),
     })
     return await handleResponse(response)
   } catch (error) {
-    console.error('Error creating snapshot:', error.message)
-    throw error
+    console.warn('Backend unavailable, simulating snapshot:', error.message)
+    return {
+      id: 'snap-' + Date.now(),
+      tournament_id: tournamentId,
+      created_at: new Date().toISOString(),
+      created_by: 'demo-user',
+      description: description || 'Demo snapshot',
+    }
   }
 }
 
 /**
  * Fetch snapshots for a tournament
+ * Expected response: Array of snapshot objects
  */
 export const fetchSnapshots = async (tournamentId, token = null) => {
   try {
@@ -215,62 +204,56 @@ export const fetchSnapshots = async (tournamentId, token = null) => {
     })
     return await handleResponse(response)
   } catch (error) {
-    console.error('Error fetching snapshots:', error.message)
-    throw error
+    console.warn('Backend unavailable, using seed snapshots:', error.message)
+    return null
   }
 }
 
 /**
  * Register a visitor
- * Django expects: { tournament, name, email, phone, visit_date }
+ * Expected request body: { name, email, phone, role }
+ * Expected response: Created visitor object with ID
  */
 export const postVisitor = async (visitorData, token = null) => {
   try {
-    const djangoData = {
-      tournament: visitorData.tournament_id || visitorData.tournament,
-      name: visitorData.name,
-      email: visitorData.email,
-      phone: visitorData.phone || '',
-      visit_date: visitorData.visit_date || new Date().toISOString().split('T')[0],
-      notes: visitorData.notes || visitorData.role || '',
-    }
-    
     const response = await fetch(`${API_BASE}/visitors/`, {
       method: 'POST',
       headers: getHeaders(token),
-      body: JSON.stringify(djangoData),
+      body: JSON.stringify(visitorData),
     })
     return await handleResponse(response)
   } catch (error) {
-    console.error('Error registering visitor:', error.message)
-    throw error
+    console.warn('Backend unavailable, simulating visitor registration:', error.message)
+    return {
+      ...visitorData,
+      id: 'vis-' + Date.now(),
+      registered_at: new Date().toISOString(),
+      checked_in: false,
+    }
   }
 }
 
 /**
- * Fetch all visitors (optionally filtered by tournament)
+ * Fetch all visitors
+ * Expected response: Array of visitor objects
  */
-export const fetchVisitors = async (tournamentId = null, token = null) => {
+export const fetchVisitors = async (token = null) => {
   try {
-    let url = `${API_BASE}/visitors/`
-    if (tournamentId) {
-      url += `?tournament=${tournamentId}`
-    }
-    
-    const response = await fetch(url, {
+    const response = await fetch(`${API_BASE}/visitors/`, {
       method: 'GET',
       headers: getHeaders(token),
     })
-    const data = await handleResponse(response)
-    return data.results || data
+    return await handleResponse(response)
   } catch (error) {
-    console.error('Error fetching visitors:', error.message)
-    throw error
+    console.warn('Backend unavailable, using seed visitors:', error.message)
+    return null
   }
 }
 
 /**
- * Update visitor (e.g., check-in)
+ * Update visitor check-in status
+ * Expected request body: { checked_in: boolean }
+ * Expected response: Updated visitor object
  */
 export const updateVisitor = async (id, updates, token = null) => {
   try {
@@ -281,266 +264,210 @@ export const updateVisitor = async (id, updates, token = null) => {
     })
     return await handleResponse(response)
   } catch (error) {
-    console.error('Error updating visitor:', error.message)
-    throw error
-  }
-}
-
-/**
- * Check-in a visitor
- */
-export const checkInVisitor = async (id, token = null) => {
-  try {
-    const response = await fetch(`${API_BASE}/visitors/${id}/check_in/`, {
-      method: 'POST',
-      headers: getHeaders(token),
-    })
-    return await handleResponse(response)
-  } catch (error) {
-    console.error('Error checking in visitor:', error.message)
-    throw error
+    console.warn('Backend unavailable, simulating visitor update:', error.message)
+    return { id, ...updates }
   }
 }
 
 /**
  * Register a team for a tournament
- * Django expects: { tournament, name, short_name, captain_name, contact_email, contact_phone }
+ * This endpoint is called from student portal when students register a team
+ * Expected request body: { tournament_id, name, captain, contact_email, contact_phone, members?: [] }
+ * Expected response: Created team object with ID
  */
 export const registerTeam = async (tournamentId, teamData, token = null) => {
   try {
-    const djangoData = {
-      tournament: tournamentId,
-      name: teamData.name,
-      short_name: teamData.short_name || teamData.shortName || '',
-      captain_name: teamData.captain || teamData.captain_name || '',
-      contact_email: teamData.contact_email || teamData.email || '',
-      contact_phone: teamData.contact_phone || teamData.phone || '',
-    }
-    
-    const response = await fetch(`${API_BASE}/teams/`, {
+    const response = await fetch(`${API_BASE}/tournaments/${tournamentId}/teams/`, {
       method: 'POST',
       headers: getHeaders(token),
-      body: JSON.stringify(djangoData),
+      body: JSON.stringify(teamData),
     })
     return await handleResponse(response)
   } catch (error) {
-    console.error('Error registering team:', error.message)
-    throw error
+    console.warn('Backend unavailable, simulating team registration:', error.message)
+    return {
+      ...teamData,
+      id: 'team-' + Date.now(),
+      tournament_id: tournamentId,
+      registered_at: new Date().toISOString(),
+    }
   }
 }
 
 /**
  * Fetch all teams for a tournament
+ * Expected response: Array of team objects
  */
 export const fetchTeams = async (tournamentId, token = null) => {
   try {
-    let url = `${API_BASE}/teams/`
-    if (tournamentId) {
-      url += `?tournament=${tournamentId}`
-    }
-    
-    const response = await fetch(url, {
+    const response = await fetch(`${API_BASE}/tournaments/${tournamentId}/teams/`, {
       method: 'GET',
       headers: getHeaders(token),
     })
-    const data = await handleResponse(response)
-    return data.results || data
+    return await handleResponse(response)
   } catch (error) {
-    console.error('Error fetching teams:', error.message)
-    throw error
+    console.warn('Backend unavailable, using local teams data:', error.message)
+    return null
+  }
+}
+
+/**
+ * Fetch all players (demo fallback)
+ */
+export const fetchPlayers = async (token = null) => {
+  try {
+    const response = await fetch(`${API_BASE}/players/`, {
+      method: 'GET',
+      headers: getHeaders(token),
+    })
+    return await handleResponse(response)
+  } catch (error) {
+    console.warn('Backend unavailable, using seed players:', error.message)
+    return null
+  }
+}
+
+export const fetchPlayer = async (id, token = null) => {
+  try {
+    const response = await fetch(`${API_BASE}/players/${id}/`, {
+      method: 'GET',
+      headers: getHeaders(token),
+    })
+    return await handleResponse(response)
+  } catch (error) {
+    console.warn('Backend unavailable, using seed player:', error.message)
+    return null
+  }
+}
+
+export const createPlayer = async (playerData, token = null) => {
+  try {
+    const response = await fetch(`${API_BASE}/players/`, {
+      method: 'POST',
+      headers: getHeaders(token),
+      body: JSON.stringify(playerData),
+    })
+    return await handleResponse(response)
+  } catch (error) {
+    console.warn('Backend unavailable, simulating player create:', error.message)
+    return {
+      ...playerData,
+      id: 'pl-' + Date.now(),
+      created_at: new Date().toISOString(),
+    }
+  }
+}
+
+export const updatePlayer = async (id, updates, token = null) => {
+  try {
+    const response = await fetch(`${API_BASE}/players/${id}/`, {
+      method: 'PATCH',
+      headers: getHeaders(token),
+      body: JSON.stringify(updates),
+    })
+    return await handleResponse(response)
+  } catch (error) {
+    console.warn('Backend unavailable, simulating player update:', error.message)
+    return { id, ...updates }
   }
 }
 
 /**
  * Update team information
+ * Expected request body: Partial team object
+ * Expected response: Updated team object
  */
 export const updateTeam = async (tournamentId, teamId, teamData, token = null) => {
   try {
-    const djangoData = {}
-    if (teamData.name) djangoData.name = teamData.name
-    if (teamData.short_name || teamData.shortName) {
-      djangoData.short_name = teamData.short_name || teamData.shortName
-    }
-    if (teamData.captain || teamData.captain_name) {
-      djangoData.captain_name = teamData.captain || teamData.captain_name
-    }
-    if (teamData.contact_email || teamData.email) {
-      djangoData.contact_email = teamData.contact_email || teamData.email
-    }
-    if (teamData.contact_phone || teamData.phone) {
-      djangoData.contact_phone = teamData.contact_phone || teamData.phone
-    }
-    
-    const response = await fetch(`${API_BASE}/teams/${teamId}/`, {
+    const response = await fetch(`${API_BASE}/tournaments/${tournamentId}/teams/${teamId}/`, {
       method: 'PATCH',
       headers: getHeaders(token),
-      body: JSON.stringify(djangoData),
+      body: JSON.stringify(teamData),
     })
     return await handleResponse(response)
   } catch (error) {
-    console.error('Error updating team:', error.message)
-    throw error
+    console.warn('Backend unavailable, simulating team update:', error.message)
+    return { id: teamId, ...teamData }
   }
 }
 
 /**
- * Delete a team
+ * Delete/withdraw a team from tournament
+ * Expected response: 204 No Content or success message
  */
 export const deleteTeam = async (tournamentId, teamId, token = null) => {
   try {
-    const response = await fetch(`${API_BASE}/teams/${teamId}/`, {
+    const response = await fetch(`${API_BASE}/tournaments/${tournamentId}/teams/${teamId}/`, {
       method: 'DELETE',
       headers: getHeaders(token),
     })
+    if (response.status === 204) {
+      return { success: true }
+    }
     return await handleResponse(response)
   } catch (error) {
-    console.error('Error deleting team:', error.message)
+    console.warn('Backend unavailable, simulating team deletion:', error.message)
+    return { success: true }
+  }
+}
+
+// ==================== AUTHENTICATION ====================
+
+/**
+ * Login user
+ * Expected request: { username, password } or { email, password }
+ * Expected response: { token, user }
+ */
+export const login = async (credentials) => {
+  try {
+    const response = await fetch(`${API_BASE}/auth/login/`, {
+      method: 'POST',
+      headers: getHeaders(),
+      body: JSON.stringify(credentials),
+    })
+    return await handleResponse(response)
+  } catch (error) {
+    console.error('Login failed:', error)
     throw error
   }
 }
 
 /**
- * Fetch all fields for a tournament
+ * Register new user
+ * Expected request: { username, email, password, password2, role }
+ * Expected response: { token, user }
  */
-export const fetchFields = async (tournamentId, token = null) => {
+export const register = async (userData) => {
   try {
-    let url = `${API_BASE}/fields/`
-    if (tournamentId) {
-      url += `?tournament=${tournamentId}`
+    const response = await fetch(`${API_BASE}/auth/register/`, {
+      method: 'POST',
+      headers: getHeaders(),
+      body: JSON.stringify(userData),
+    })
+    return await handleResponse(response)
+  } catch (error) {
+    console.error('Registration failed:', error)
+    throw error
+  }
+}
+
+/**
+ * Get current logged-in user
+ * Expected response: User object with profile
+ */
+export const getCurrentUser = async () => {
+  try {
+    const token = localStorage.getItem('auth_token')
+    if (!token) {
+      throw new Error('No token found')
     }
-    
-    const response = await fetch(url, {
+    const response = await fetch(`${API_BASE}/auth/me/`, {
       method: 'GET',
-      headers: getHeaders(token),
-    })
-    const data = await handleResponse(response)
-    return data.results || data
-  } catch (error) {
-    console.error('Error fetching fields:', error.message)
-    throw error
-  }
-}
-
-/**
- * Create a field
- */
-export const createField = async (tournamentId, fieldData, token = null) => {
-  try {
-    const djangoData = {
-      tournament: tournamentId,
-      name: fieldData.name,
-      field_number: fieldData.field_number || fieldData.number,
-      location_details: fieldData.location_details || fieldData.location || '',
-      is_available: fieldData.is_available !== undefined ? fieldData.is_available : true,
-    }
-    
-    const response = await fetch(`${API_BASE}/fields/`, {
-      method: 'POST',
-      headers: getHeaders(token),
-      body: JSON.stringify(djangoData),
+      headers: getHeaders(),
     })
     return await handleResponse(response)
   } catch (error) {
-    console.error('Error creating field:', error.message)
-    throw error
-  }
-}
-
-/**
- * Update a field
- */
-export const updateField = async (fieldId, fieldData, token = null) => {
-  try {
-    const response = await fetch(`${API_BASE}/fields/${fieldId}/`, {
-      method: 'PATCH',
-      headers: getHeaders(token),
-      body: JSON.stringify(fieldData),
-    })
-    return await handleResponse(response)
-  } catch (error) {
-    console.error('Error updating field:', error.message)
-    throw error
-  }
-}
-
-/**
- * Delete a field
- */
-export const deleteField = async (fieldId, token = null) => {
-  try {
-    const response = await fetch(`${API_BASE}/fields/${fieldId}/`, {
-      method: 'DELETE',
-      headers: getHeaders(token),
-    })
-    return await handleResponse(response)
-  } catch (error) {
-    console.error('Error deleting field:', error.message)
-    throw error
-  }
-}
-
-/**
- * Fetch all matches for a tournament
- */
-export const fetchMatches = async (tournamentId, token = null) => {
-  try {
-    let url = `${API_BASE}/matches/`
-    if (tournamentId) {
-      url += `?tournament=${tournamentId}`
-    }
-    
-    const response = await fetch(url, {
-      method: 'GET',
-      headers: getHeaders(token),
-    })
-    const data = await handleResponse(response)
-    return data.results || data
-  } catch (error) {
-    console.error('Error fetching matches:', error.message)
-    throw error
-  }
-}
-
-/**
- * Create a match
- */
-export const createMatch = async (tournamentId, matchData, token = null) => {
-  try {
-    const djangoData = {
-      tournament: tournamentId,
-      match_number: matchData.match_number || matchData.number,
-      team_a: matchData.team_a || matchData.teamA,
-      team_b: matchData.team_b || matchData.teamB,
-      field: matchData.field || null,
-      scheduled_datetime: matchData.scheduled_datetime || matchData.datetime,
-      status: (matchData.status || 'SCHEDULED').toUpperCase(),
-    }
-    
-    const response = await fetch(`${API_BASE}/matches/`, {
-      method: 'POST',
-      headers: getHeaders(token),
-      body: JSON.stringify(djangoData),
-    })
-    return await handleResponse(response)
-  } catch (error) {
-    console.error('Error creating match:', error.message)
-    throw error
-  }
-}
-
-/**
- * Update match score
- */
-export const updateMatchScore = async (matchId, scoreData, token = null) => {
-  try {
-    const response = await fetch(`${API_BASE}/matches/${matchId}/update_score/`, {
-      method: 'POST',
-      headers: getHeaders(token),
-      body: JSON.stringify(scoreData),
-    })
-    return await handleResponse(response)
-  } catch (error) {
-    console.error('Error updating match score:', error.message)
+    console.error('Get current user failed:', error)
     throw error
   }
 }

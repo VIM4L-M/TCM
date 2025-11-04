@@ -1,6 +1,19 @@
 import { useEffect, useRef, useState } from 'react'
 import { WS_BASE } from '../api'
 
+/**
+ * Real-time WebSocket hook for tournament updates
+ * 
+ * Connects to: ${WS_BASE}/ws/tournaments/${id}/
+ * 
+ * Expected message structure:
+ * {
+ *   type: 'tournament.updated' | 'match.scheduled' | 'team.registered' | 'field.updated',
+ *   payload: { ... relevant data ... }
+ * }
+ * 
+ * Falls back to polling if WebSocket unavailable
+ */
 export const useTournamentSocket = (tournamentId, onMessage, pollInterval = 10000) => {
   const [isConnected, setIsConnected] = useState(false)
   const [error, setError] = useState(null)
@@ -13,6 +26,7 @@ export const useTournamentSocket = (tournamentId, onMessage, pollInterval = 1000
 
     let isMounted = true
 
+    // Attempt WebSocket connection
     const connectWebSocket = () => {
       try {
         const ws = new WebSocket(`${WS_BASE}/ws/tournaments/${tournamentId}/`)
@@ -52,7 +66,8 @@ export const useTournamentSocket = (tournamentId, onMessage, pollInterval = 1000
           if (isMounted) {
             console.log('WebSocket disconnected')
             setIsConnected(false)
-
+            
+            // Attempt to reconnect after 5 seconds
             reconnectTimeoutRef.current = setTimeout(() => {
               if (isMounted) {
                 console.log('Attempting to reconnect WebSocket...')
@@ -70,15 +85,16 @@ export const useTournamentSocket = (tournamentId, onMessage, pollInterval = 1000
       }
     }
 
-
+    // Fallback polling mechanism
     const startPolling = () => {
       if (pollingRef.current) return
 
       console.log('Starting fallback polling every', pollInterval, 'ms')
       pollingRef.current = setInterval(() => {
-  
+        // TODO: Implement actual polling fetch call to get tournament updates
+        // This would call fetchTournament() and compare with cached state
         if (isMounted && onMessage) {
-     
+          // Simulate polling update message
           onMessage({
             type: 'poll.update',
             payload: { timestamp: new Date().toISOString() }
@@ -87,8 +103,10 @@ export const useTournamentSocket = (tournamentId, onMessage, pollInterval = 1000
       }, pollInterval)
     }
 
+    // Try WebSocket first
     connectWebSocket()
 
+    // Cleanup
     return () => {
       isMounted = false
       
@@ -109,7 +127,7 @@ export const useTournamentSocket = (tournamentId, onMessage, pollInterval = 1000
     }
   }, [tournamentId, onMessage, pollInterval])
 
-
+  // Method to send messages through WebSocket
   const send = (message) => {
     if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
       wsRef.current.send(JSON.stringify(message))

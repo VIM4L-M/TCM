@@ -34,31 +34,25 @@ const Layout = () => {
 
   // Define menu items based on user role
   const getNavItems = () => {
-    // Check if user is admin
-    const isUserAdmin = user?.is_staff || user?.profile?.role === 'DIRECTOR'
-    
     const commonItems = [
+      { path: '/dashboard', label: 'Dashboard', icon: '�' },
       { path: '/schedule', label: 'Schedule', icon: '🗓️' },
       { path: '/leaderboard', label: 'Leaderboard', icon: '📊' },
       { path: '/spirit', label: 'Spirit', icon: '✨' },
     ]
 
     const adminItems = [
-      { path: '/tournaments', label: 'Tournaments', icon: '🏆' },
+      { path: '/tournaments', label: 'Manage Tournaments', icon: '🏆' },
       { path: '/players', label: 'Players', icon: '👤' },
       { path: '/visitors', label: 'Visitors', icon: '👥' },
     ]
 
-    const playerItems = [
-      { path: '/dashboard', label: 'Dashboard', icon: '🏠' },
-    ]
-
     // Show admin items if user is staff (admin/director)
-    if (isUserAdmin) {
-      return [...adminItems, ...commonItems]
+    if (user?.is_staff || user?.profile?.role === 'DIRECTOR') {
+      return [...commonItems, ...adminItems]
     }
 
-    return [...playerItems, ...commonItems]
+    return commonItems
   }
 
   const navItems = getNavItems()
@@ -72,7 +66,7 @@ const Layout = () => {
         <div className="container mx-auto px-4 py-4 flex items-center justify-between">
           <div className="flex items-center space-x-6">
             {/* Logo */}
-            <Link to="/" className="flex items-center space-x-3">
+            <Link to="/dashboard" className="flex items-center space-x-3">
               <div className="w-10 h-10 bg-gradient-to-br from-tournament-blue to-primary-dark rounded-lg flex items-center justify-center shadow-md">
                 <span className="text-white font-bold text-xl">T</span>
               </div>

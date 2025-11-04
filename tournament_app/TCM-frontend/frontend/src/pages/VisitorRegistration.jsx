@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { postVisitor, fetchVisitors, updateVisitor } from '../api'
-// import { seedVisitors, generateId } from '../data/seed'
+import { seedVisitors, generateId } from '../data/seed'
 import DemoBanner from '../components/DemoBanner'
 import Toast from '../components/Toast'
 import { useToast } from '../hooks/useToast'

@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react'
-// import { generateId } from '../data/seed'
+import { generateId } from '../data/seed'
 
 const TeamManager = ({ teams = [], onChange, maxTeams, tournamentFormat, onStatsUpdate }) => {
   // Calculate matches whenever teams or format changes

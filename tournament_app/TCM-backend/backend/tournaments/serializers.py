@@ -10,11 +10,22 @@ from .models import (
 class UserSerializer(serializers.ModelSerializer):
     role = serializers.CharField(source='profile.role', read_only=True)
     phone = serializers.CharField(source='profile.phone', read_only=True)
+    profile = serializers.SerializerMethodField()
     
     class Meta:
         model = User
-        fields = ['id', 'username', 'email', 'first_name', 'last_name', 'role', 'phone']
-        read_only_fields = ['id']
+        fields = ['id', 'username', 'email', 'first_name', 'last_name', 'is_staff', 'is_superuser', 'role', 'phone', 'profile']
+        read_only_fields = ['id', 'is_staff', 'is_superuser']
+    
+    def get_profile(self, obj):
+        """Include full profile data"""
+        try:
+            return {
+                'role': obj.profile.role,
+                'phone': obj.profile.phone,
+            }
+        except UserProfile.DoesNotExist:
+            return None
 
 
 class UserProfileSerializer(serializers.ModelSerializer):
@@ -30,7 +41,10 @@ class UserProfileSerializer(serializers.ModelSerializer):
 class RegisterSerializer(serializers.ModelSerializer):
     password = serializers.CharField(write_only=True, min_length=6)
     password_confirm = serializers.CharField(write_only=True, min_length=6)
-    role = serializers.ChoiceField(choices=['CAPTAIN', 'PLAYER', 'VOLUNTEER'], default='FAN')
+    role = serializers.ChoiceField(
+        choices=['DIRECTOR', 'CAPTAIN', 'PLAYER', 'VOLUNTEER', 'SCORING', 'SPONSOR', 'FAN'],
+        default='FAN'
+    )
     phone = serializers.CharField(required=False, allow_blank=True)
     
     class Meta:
@@ -54,6 +68,11 @@ class RegisterSerializer(serializers.ModelSerializer):
             first_name=validated_data.get('first_name', ''),
             last_name=validated_data.get('last_name', '')
         )
+        
+        # Set is_staff for Director/Admin role
+        if role == 'DIRECTOR':
+            user.is_staff = True
+            user.save()
         
         # Create profile
         UserProfile.objects.create(

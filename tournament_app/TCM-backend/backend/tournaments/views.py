@@ -2,9 +2,11 @@ from rest_framework import viewsets, status, filters
 from rest_framework.decorators import action, api_view, permission_classes
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated, AllowAny
+from rest_framework.authtoken.models import Token
 from django.shortcuts import get_object_or_404
 from django.db.models import Q, Count, Avg, Sum, F
 from django.utils import timezone
+from django.contrib.auth import authenticate
 from django.contrib.auth.models import User
 from django.http import HttpResponse
 from datetime import datetime, timedelta
@@ -29,15 +31,49 @@ from .serializers import (
 
 @api_view(['POST'])
 @permission_classes([AllowAny])
+def login_user(request):
+    """
+    Login user and return auth token
+    Expected: { username, password }
+    """
+    username = request.data.get('username')
+    password = request.data.get('password')
+    
+    if not username or not password:
+        return Response({
+            'error': 'Please provide both username and password'
+        }, status=status.HTTP_400_BAD_REQUEST)
+    
+    user = authenticate(username=username, password=password)
+    
+    if not user:
+        return Response({
+            'error': 'Invalid credentials'
+        }, status=status.HTTP_401_UNAUTHORIZED)
+    
+    # Get or create token
+    token, created = Token.objects.get_or_create(user=user)
+    
+    return Response({
+        'token': token.key,
+        'user': UserSerializer(user).data
+    }, status=status.HTTP_200_OK)
+
+
+@api_view(['POST'])
+@permission_classes([AllowAny])
 def register_user(request):
     """
-    Register new user (Captain, Player, Volunteer, Fan)
+    Register new user (Captain, Player, Volunteer, Fan, Director/Admin)
     """
     serializer = RegisterSerializer(data=request.data)
     if serializer.is_valid():
         user = serializer.save()
+        # Create token for the new user
+        token, created = Token.objects.get_or_create(user=user)
         return Response({
             'message': 'Registration successful',
+            'token': token.key,
             'user': UserSerializer(user).data
         }, status=status.HTTP_201_CREATED)
     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)

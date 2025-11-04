@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react'
-import { Link } from 'react-router-dom'
-import { fetchTournaments, deleteTournament, createSnapshot, publishTournament } from '../api'
-// import DemoBanner from '../components/DemoBanner'
+import { Link, useLocation } from 'react-router-dom'
+import { fetchTournaments, deleteTournament, createSnapshot } from '../api'
+import { seedTournaments } from '../data/seed'
+import DemoBanner from '../components/DemoBanner'
 import LoadingSpinner from '../components/LoadingSpinner'
 import Toast from '../components/Toast'
 import { useToast } from '../hooks/useToast'
@@ -14,10 +15,19 @@ const Dashboard = () => {
   const [searchQuery, setSearchQuery] = useState('')
   const [statusFilter, setStatusFilter] = useState('all')
   const { toasts, showToast, removeToast } = useToast()
+  const location = useLocation()
 
+  // Load tournaments on mount and when navigating back to this page
   useEffect(() => {
     loadTournaments()
-  }, [])
+  }, [location.pathname])
+
+  // Save tournaments to localStorage whenever they change (for demo mode persistence)
+  useEffect(() => {
+    if (demoMode && tournaments.length > 0) {
+      localStorage.setItem('demo_tournaments', JSON.stringify(tournaments))
+    }
+  }, [tournaments, demoMode])
 
   useEffect(() => {
     filterTournaments()
@@ -25,38 +35,53 @@ const Dashboard = () => {
 
   const loadTournaments = async () => {
     setLoading(true)
-    try {
-      const data = await fetchTournaments(null, statusFilter, searchQuery)
+    const data = await fetchTournaments()
+    
+    if (data === null) {
+      // Backend unavailable, check localStorage first, then use seed data
+      const savedTournaments = localStorage.getItem('demo_tournaments')
+      if (savedTournaments) {
+        try {
+          setTournaments(JSON.parse(savedTournaments))
+        } catch (e) {
+          setTournaments([...seedTournaments])
+        }
+      } else {
+        setTournaments([...seedTournaments])
+      }
+      setDemoMode(true)
+    } else {
       setTournaments(data)
       setDemoMode(false)
-    } catch (error) {
-      console.error('Error loading tournaments:', error)
-      showToast('Failed to load tournaments', 'error')
-      setTournaments([])
-      setDemoMode(true)
+        // Clear localStorage seed data when backend is available
+        localStorage.removeItem('demo_tournaments')
     }
+    
     setLoading(false)
   }
 
   const filterTournaments = () => {
+    // Safety check: ensure tournaments is an array
+    if (!Array.isArray(tournaments)) {
+      setFilteredTournaments([])
+      return
+    }
+
     let filtered = [...tournaments]
 
-    // Search filter (client-side for immediate feedback)
+    // Search filter
     if (searchQuery.trim()) {
       const query = searchQuery.toLowerCase()
       filtered = filtered.filter(t => 
-        (t.name || t.title || '').toLowerCase().includes(query) ||
-        (t.slug || '').toLowerCase().includes(query) ||
-        (t.location || '').toLowerCase().includes(query) ||
-        (t.city || '').toLowerCase().includes(query)
+        t.title.toLowerCase().includes(query) ||
+        t.slug.toLowerCase().includes(query) ||
+        t.location.toLowerCase().includes(query)
       )
     }
 
     // Status filter
     if (statusFilter !== 'all') {
-      filtered = filtered.filter(t => 
-        (t.status || '').toLowerCase() === statusFilter.toLowerCase()
-      )
+      filtered = filtered.filter(t => t.status === statusFilter)
     }
 
     setFilteredTournaments(filtered)
@@ -65,72 +90,62 @@ const Dashboard = () => {
   const handleDelete = async (id) => {
     if (!confirm('Are you sure you want to delete this tournament?')) return
 
-    try {
-      await deleteTournament(id)
+    const result = await deleteTournament(id)
+    if (result.success) {
       setTournaments(prev => prev.filter(t => t.id !== id))
       showToast('Tournament deleted successfully', 'success')
-    } catch (error) {
-      console.error('Delete error:', error)
+    } else {
       showToast('Failed to delete tournament', 'error')
     }
   }
 
   const handlePublish = async (tournament) => {
-    try {
-      // Check current status
-      const isPublished = tournament.status === 'PUBLISHED'
-      
-      if (isPublished) {
-        // If already published, set back to draft
-        const updated = await publishTournament(tournament.id)
-        // Actually we need to use updateTournament for unpublishing
-        // For now, just toggle locally
-        setTournaments(prev => prev.map(t => 
-          t.id === tournament.id ? { ...t, status: 'DRAFT' } : t
-        ))
-        showToast('Tournament set to draft', 'success')
-      } else {
-        // Publish the tournament
-        const updated = await publishTournament(tournament.id)
-        setTournaments(prev => prev.map(t => 
-          t.id === tournament.id ? { ...t, status: 'PUBLISHED' } : t
-        ))
-        showToast('Tournament published successfully', 'success')
-      }
-    } catch (error) {
-      console.error('Publish error:', error)
-      showToast('Failed to update tournament status', 'error')
+    // Toggle between draft/active status and published state
+    const newPublishState = !tournament.is_published
+    const newStatus = newPublishState ? 'active' : 'draft'
+    
+    // Create updated tournament object with new values
+    const updated = { 
+      ...tournament, 
+      is_published: newPublishState,
+      status: newStatus,
+      updated_at: new Date().toISOString()
     }
+    
+    // Update local state immediately for responsive UI
+    setTournaments(prev => prev.map(t => t.id === tournament.id ? updated : t))
+    
+    // Update with backend (fire and forget, already updated UI)
+    updateTournament(tournament.id, { 
+      is_published: newPublishState,
+      status: newStatus 
+    })
+    
+    showToast(
+      newPublishState ? 'Tournament published and activated' : 'Tournament unpublished and set to draft',
+      'success'
+    )
   }
 
   const handleCreateSnapshot = async (id) => {
     const description = prompt('Enter snapshot description (optional):')
     if (description === null) return // User cancelled
 
-    try {
-      await createSnapshot(id, description)
-      showToast('Snapshot created successfully', 'success')
-    } catch (error) {
-      console.error('Snapshot error:', error)
-      showToast('Failed to create snapshot', 'error')
-    }
+    const snapshot = await createSnapshot(id, description)
+    showToast('Snapshot created successfully', 'success')
   }
 
   const getStatusBadge = (status) => {
-    const statusLower = (status || '').toLowerCase()
     const badges = {
       draft: 'badge-info',
-      published: 'badge-success',
       active: 'badge-success',
-      ongoing: 'badge-success',
       completed: 'badge-warning',
       cancelled: 'badge-danger'
     }
-    return badges[statusLower] || 'badge-info'
+    return badges[status] || 'badge-info'
   }
 
   const formatDate = (dateStr) => {
-    if (!dateStr) return 'N/A'
     const date = new Date(dateStr)
     return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
   }
@@ -145,7 +160,7 @@ const Dashboard = () => {
 
   return (
     <div className="max-w-7xl mx-auto">
-      {/* {demoMode && <DemoBanner onDismiss={() => setDemoMode(false)} />} */}
+      {demoMode && <DemoBanner onDismiss={() => setDemoMode(false)} />}
 
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-8">
@@ -195,8 +210,7 @@ const Dashboard = () => {
             >
               <option value="all">All Statuses</option>
               <option value="draft">Draft</option>
-              <option value="published">Published</option>
-              <option value="ongoing">Ongoing</option>
+              <option value="active">Active</option>
               <option value="completed">Completed</option>
               <option value="cancelled">Cancelled</option>
             </select>
@@ -233,86 +247,57 @@ const Dashboard = () => {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {filteredTournaments.map((tournament) => (
-            <div key={tournament.id} className="card group hover:glow-primary">
-              <div className="flex items-start justify-between mb-4">
-                <div className="flex-1">
-                  <h3 className="text-xl font-bold text-slate mb-2 group-hover:text-primary transition-colors">
-                    {tournament.name || tournament.title}
-                  </h3>
-                  <p className="text-sm text-gray-600 mb-3">
-                    {tournament.location}
-                    {tournament.city && `, ${tournament.city}`}
-                  </p>
-                  <span className={`badge ${getStatusBadge(tournament.status)}`}>
-                    {(tournament.status || 'DRAFT').toUpperCase()}
-                  </span>
+            <div key={tournament.id} className="bg-white p-6 rounded-2xl shadow-lg border border-blue-100 hover:scale-105 hover:shadow-xl hover:shadow-blue-100 hover:bg-gradient-to-br hover:from-blue-400 hover:via-sky-200 hover:to-cyan-100 transition-all duration-300 ease-in-out">
+              <h2 className="text-2xl font-semibold text-sky-600 mb-1">{tournament.title}</h2>
+              <p className="text-gray-600 mb-2">{tournament.location}</p>
+              <span className={`inline-block ${tournament.status === 'active' ? 'bg-green-100 text-green-700' : tournament.status === 'draft' ? 'bg-gray-200 text-gray-700' : tournament.status === 'completed' ? 'bg-amber-100 text-amber-700' : 'bg-red-100 text-red-700'} text-sm font-semibold px-3 py-1 rounded-full mb-4`}>
+                {tournament.status.toUpperCase()}
+              </span>
+
+              <div className="flex justify-around my-4">
+                <div>
+                  <span className="text-sky-500 font-bold text-lg">{tournament.stats?.teams_registered || 0}</span>
+                  <p className="text-gray-500 text-sm">Teams</p>
+                </div>
+                <div>
+                  <span className="text-sky-500 font-bold text-lg">{tournament.stats?.matches_scheduled || 0}</span>
+                  <p className="text-gray-500 text-sm">Matches</p>
+                </div>
+                <div>
+                  <span className="text-amber-500 font-bold text-lg">{tournament.stats?.fields_count || 0}</span>
+                  <p className="text-gray-500 text-sm">Fields</p>
                 </div>
               </div>
 
-              {/* Stats */}
-              <div className="grid grid-cols-3 gap-2 py-4 border-t border-b border-gray-100">
-                <div className="text-center">
-                  <p className="text-2xl font-bold text-primary">
-                    {tournament.teams_count || tournament.stats?.teams_registered || 0}
-                  </p>
-                  <p className="text-xs text-gray-600">Teams</p>
-                </div>
-                <div className="text-center">
-                  <p className="text-2xl font-bold text-accent-teal">
-                    {tournament.matches_count || tournament.stats?.matches_scheduled || 0}
-                  </p>
-                  <p className="text-xs text-gray-600">Matches</p>
-                </div>
-                <div className="text-center">
-                  <p className="text-2xl font-bold text-gold">
-                    {tournament.fields_count || tournament.stats?.fields_count || 0}
-                  </p>
-                  <p className="text-xs text-gray-600">Fields</p>
-                </div>
+              <div className="text-sm text-gray-700 mb-4">
+                <p><strong>Start:</strong> {formatDate(tournament.start_date)}</p>
+                <p><strong>End:</strong> {formatDate(tournament.end_date)}</p>
               </div>
 
-              {/* Dates */}
-              <div className="mt-4 space-y-1 text-sm text-gray-600">
-                <p>
-                  <span className="font-semibold">Start:</span> {formatDate(tournament.start_date)}
-                </p>
-                <p>
-                  <span className="font-semibold">End:</span> {formatDate(tournament.end_date)}
-                </p>
-              </div>
-
-              {/* Actions */}
-              <div className="mt-6 flex flex-wrap gap-2">
+              <div className="grid grid-cols-2 gap-3">
                 <Link
                   to={`/tournaments/edit/${tournament.id}`}
-                  className="flex-1 text-center bg-primary hover:bg-primary-dark text-white font-medium py-2 px-4 rounded-lg transition-colors"
+                  className="bg-sky-500 hover:bg-sky-700 text-white font-semibold py-2 rounded-lg transition-all duration-200 ease-in-out text-center"
                 >
                   Edit
                 </Link>
                 <button
                   onClick={() => handlePublish(tournament)}
-                  className={`flex-1 text-center font-medium py-2 px-4 rounded-lg transition-colors ${
-                    tournament.status === 'PUBLISHED'
-                      ? 'bg-gray-200 hover:bg-gray-300 text-gray-700'
-                      : 'bg-success hover:bg-green-600 text-white'
-                  }`}
+                  className={`bg-gray-300 hover:bg-gray-400 text-gray-700 font-semibold py-2 rounded-lg transition-all duration-200 ease-in-out text-center ${!tournament.is_published ? 'bg-green-500 hover:bg-green-600 text-white' : ''}`}
                 >
-                  {tournament.status === 'PUBLISHED' ? 'Unpublish' : 'Publish'}
+                  {tournament.is_published ? 'Unpublish' : 'Publish'}
                 </button>
-              </div>
-
-              <div className="mt-2 flex gap-2">
                 <button
                   onClick={() => handleCreateSnapshot(tournament.id)}
-                  className="flex-1 text-center bg-accent-teal hover:bg-cyan-600 text-white font-medium py-2 px-4 rounded-lg transition-colors text-sm"
+                  className="bg-sky-500 hover:bg-sky-600 hover:shadow-md text-white font-semibold py-2 rounded-lg transition-all duration-200 ease-in-out text-center"
                 >
                   📸 Snapshot
                 </button>
                 <button
                   onClick={() => handleDelete(tournament.id)}
-                  className="flex-1 text-center bg-accent-coral hover:bg-red-600 text-white font-medium py-2 px-4 rounded-lg transition-colors text-sm"
+                  className="bg-red-500 hover:bg-red-600 text-white font-semibold py-2 rounded-lg transition-all duration-200 ease-in-out text-center"
                 >
-                  🗑️ Delete
+                  🗑 Delete
                 </button>
               </div>
             </div>

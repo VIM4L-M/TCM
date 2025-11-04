@@ -3,7 +3,7 @@ from rest_framework.routers import DefaultRouter
 from .views import (
     TournamentViewSet, TeamViewSet, FieldViewSet, MatchViewSet,
     VisitorViewSet, UserProfileViewSet, SpiritScoreViewSet,
-    MatchPhotoViewSet, register_user, current_user, volunteer_dashboard
+    MatchPhotoViewSet, login_user, register_user, current_user, volunteer_dashboard
 )
 
 router = DefaultRouter()
@@ -18,6 +18,7 @@ router.register(r'match-photos', MatchPhotoViewSet, basename='matchphoto')
 
 urlpatterns = [
     path('', include(router.urls)),
+    path('auth/login/', login_user, name='login'),
     path('auth/register/', register_user, name='register'),
     path('auth/me/', current_user, name='current-user'),
     path('volunteer/dashboard/', volunteer_dashboard, name='volunteer-dashboard'),

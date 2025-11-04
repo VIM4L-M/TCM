@@ -1,5 +1,9 @@
 import { useState, useCallback } from 'react'
 
+/**
+ * Simple toast notification hook
+ * Returns showToast function and toast state
+ */
 export const useToast = () => {
   const [toasts, setToasts] = useState([])
 
@@ -9,6 +13,7 @@ export const useToast = () => {
     
     setToasts(prev => [...prev, toast])
 
+    // Auto-remove after duration
     setTimeout(() => {
       setToasts(prev => prev.filter(t => t.id !== id))
     }, duration)

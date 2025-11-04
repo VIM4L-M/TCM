@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { fetchTournament, createTournament, updateTournament } from '../api'
+import { seedTournaments, generateId } from '../data/seed'
 import LoadingSpinner from '../components/LoadingSpinner'
 import Toast from '../components/Toast'
 import { useToast } from '../hooks/useToast'
@@ -19,20 +20,26 @@ const TournamentForm = () => {
   const [saving, setSaving] = useState(false)
 
   const [formData, setFormData] = useState({
-    name: '',
+    title: '',
     slug: '',
     description: '',
     rules: '',
     start_date: '',
     end_date: '',
+    timezone: 'America/New_York',
     location: '',
-    city: '',
-    state: '',
-    country: '',
-    status: 'DRAFT',
+    max_teams: 16,
+    registration_close: '',
+    status: 'draft',
+    is_published: false,
     sponsors: [],
     fields: [],
     teams: [],
+    tournament_format: 'single_elimination', // single_elimination, double_elimination, round_robin
+    stats: {
+      teams_registered: 0,
+      matches_scheduled: 0
+    }
   })
 
   useEffect(() => {
@@ -43,34 +50,41 @@ const TournamentForm = () => {
 
   const loadTournament = async () => {
     setLoading(true)
-    try {
-      const data = await fetchTournament(id)
-      
-      if (data) {
-        // Convert Django data to form format
-        setFormData({
-          name: data.name || '',
-          slug: data.slug || '',
-          description: data.description || '',
-          rules: data.rules || '',
-          start_date: data.start_date || '',
-          end_date: data.end_date || '',
-          location: data.location || '',
-          city: data.city || '',
-          state: data.state || '',
-          country: data.country || '',
-          status: data.status || 'DRAFT',
-          sponsors: data.sponsors || [],
-          fields: data.fields || [],
-          teams: data.teams || [],
-        })
-      } else {
-        showToast('Tournament not found', 'error')
-        navigate('/tournaments')
+    let data = await fetchTournament(id)
+    
+    if (!data) {
+      // Fallback to localStorage first (for newly created tournaments in demo mode)
+      const savedTournaments = localStorage.getItem('demo_tournaments')
+      if (savedTournaments) {
+        try {
+          const tournaments = JSON.parse(savedTournaments)
+          data = tournaments.find(t => t.id === id)
+        } catch (e) {
+          console.error('Failed to parse localStorage:', e)
+        }
       }
-    } catch (error) {
-      console.error('Error loading tournament:', error)
-      showToast('Failed to load tournament', 'error')
+      
+      // If still not found, check seed data
+      if (!data) {
+        data = seedTournaments.find(t => t.id === id)
+      }
+    }
+
+    if (data) {
+      // Convert ISO dates to datetime-local format
+      setFormData({
+        ...data,
+        start_date: data.start_date ? data.start_date.slice(0, 16) : '',
+        end_date: data.end_date ? data.end_date.slice(0, 16) : '',
+        registration_close: data.registration_close ? data.registration_close.slice(0, 16) : '',
+        stats: data.stats || {
+          teams_registered: 0,
+          matches_scheduled: 0,
+          fields_count: data.fields?.length || 0
+        }
+      })
+    } else {
+      showToast('Tournament not found', 'error')
       navigate('/tournaments')
     }
     
@@ -90,60 +104,96 @@ const TournamentForm = () => {
     setSaving(true)
 
     // Validation
-    if (!formData.name.trim()) {
-      showToast('Tournament name is required', 'error')
+    if (!formData.title.trim()) {
+      showToast('Title is required', 'error')
       setSaving(false)
       return
     }
 
-    if (!formData.location.trim()) {
-      showToast('Location is required', 'error')
+    if (!formData.slug.trim()) {
+      showToast('Slug is required', 'error')
       setSaving(false)
       return
     }
 
-    if (!formData.start_date) {
-      showToast('Start date is required', 'error')
-      setSaving(false)
-      return
-    }
-
-    if (!formData.end_date) {
-      showToast('End date is required', 'error')
-      setSaving(false)
-      return
-    }
-
-    // Prepare data for Django API
+    // Prepare data for API
     const payload = {
-      name: formData.name,
-      location: formData.location,
-      city: formData.city || '',
-      state: formData.state || '',
-      country: formData.country || '',
-      start_date: formData.start_date,
-      end_date: formData.end_date,
-      status: formData.status || 'DRAFT',
-      description: formData.description || '',
-      rules: formData.rules || '',
+      ...formData,
+      // Convert datetime-local back to ISO format
+      start_date: formData.start_date ? new Date(formData.start_date).toISOString() : null,
+      end_date: formData.end_date ? new Date(formData.end_date).toISOString() : null,
+      registration_close: formData.registration_close ? new Date(formData.registration_close).toISOString() : null,
+      stats: {
+        teams_registered: formData.stats?.teams_registered || 0,
+        matches_scheduled: formData.stats?.matches_scheduled || 0,
+        fields_count: formData.fields?.length || 0
+      }
     }
 
-    try {
-      if (isEditMode) {
-        await updateTournament(id, payload)
-        showToast('Tournament updated successfully', 'success')
-      } else {
-        await createTournament(payload)
-        showToast('Tournament created successfully', 'success')
+    if (isEditMode) {
+      const result = await updateTournament(id, payload)
+      
+      // Update localStorage for demo mode
+      const savedTournaments = localStorage.getItem('demo_tournaments')
+      if (savedTournaments) {
+        try {
+          const tournaments = JSON.parse(savedTournaments)
+          const updatedTournaments = tournaments.map(t => {
+            if (t.id === id) {
+              return {
+                ...t,
+                ...payload,
+                updated_at: new Date().toISOString(),
+                stats: {
+                  teams_registered: payload.stats?.teams_registered || 0,
+                  matches_scheduled: payload.stats?.matches_scheduled || 0,
+                  fields_count: payload.fields?.length || 0
+                }
+              }
+            }
+            return t
+          })
+          localStorage.setItem('demo_tournaments', JSON.stringify(updatedTournaments))
+        } catch (e) {
+          console.error('Failed to update localStorage:', e)
+        }
       }
       
-      setTimeout(() => {
-        navigate('/tournaments')
-      }, 1000)
-    } catch (error) {
-      console.error('Error saving tournament:', error)
-      showToast(error.message || 'Failed to save tournament', 'error')
+      showToast('Tournament updated successfully', 'success')
+    } else {
+      const newTournament = await createTournament(payload)
+      
+      // Ensure stats are included with proper fields count
+      const tournamentWithStats = {
+        ...newTournament,
+        stats: {
+          teams_registered: 0,
+          matches_scheduled: 0,
+          fields_count: payload.fields?.length || 0
+        }
+      }
+      
+      // Add to localStorage for demo mode
+      const savedTournaments = localStorage.getItem('demo_tournaments')
+      if (savedTournaments) {
+        try {
+          const tournaments = JSON.parse(savedTournaments)
+          tournaments.push(tournamentWithStats)
+          localStorage.setItem('demo_tournaments', JSON.stringify(tournaments))
+        } catch (e) {
+          console.error('Failed to update localStorage:', e)
+        }
+      } else {
+        // First tournament in demo mode
+        localStorage.setItem('demo_tournaments', JSON.stringify([tournamentWithStats]))
+      }
+      
+      showToast('Tournament created successfully', 'success')
     }
+    
+    setTimeout(() => {
+      navigate('/tournaments')
+    }, 1000)
     
     setSaving(false)
   }
@@ -155,7 +205,7 @@ const TournamentForm = () => {
   }
 
   const autoGenerateSlug = () => {
-    const slug = formData.name
+    const slug = formData.title
       .toLowerCase()
       .replace(/[^a-z0-9]+/g, '-')
       .replace(/^-+|-+$/g, '')
@@ -191,16 +241,41 @@ const TournamentForm = () => {
           
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="md:col-span-2">
-              <label className="label-field">Tournament Name *</label>
+              <label className="label-field">Tournament Title *</label>
               <input
                 type="text"
-                name="name"
+                name="title"
                 className="input-field"
-                placeholder="e.g., Summer League 2025"
-                value={formData.name}
+                placeholder="e.g., TCA Championship 2025"
+                value={formData.title}
                 onChange={handleChange}
                 required
               />
+            </div>
+
+            <div className="md:col-span-2">
+              <label className="label-field">URL Slug *</label>
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  name="slug"
+                  className="input-field flex-1"
+                  placeholder="e.g., tca-championship-2025"
+                  value={formData.slug}
+                  onChange={handleChange}
+                  required
+                />
+                <button
+                  type="button"
+                  className="btn-secondary"
+                  onClick={autoGenerateSlug}
+                >
+                  Auto Generate
+                </button>
+              </div>
+              <p className="text-xs text-gray-500 mt-1">
+                Used in URLs. Only lowercase letters, numbers, and hyphens.
+              </p>
             </div>
 
             <div className="md:col-span-2">
@@ -235,9 +310,9 @@ const TournamentForm = () => {
           
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="label-field">Start Date *</label>
+              <label className="label-field">Start Date & Time *</label>
               <input
-                type="date"
+                type="datetime-local"
                 name="start_date"
                 className="input-field"
                 value={formData.start_date}
@@ -247,9 +322,9 @@ const TournamentForm = () => {
             </div>
 
             <div>
-              <label className="label-field">End Date *</label>
+              <label className="label-field">End Date & Time *</label>
               <input
-                type="date"
+                type="datetime-local"
                 name="end_date"
                 className="input-field"
                 value={formData.end_date}
@@ -258,13 +333,40 @@ const TournamentForm = () => {
               />
             </div>
 
+            <div>
+              <label className="label-field">Timezone</label>
+              <select
+                name="timezone"
+                className="select-field"
+                value={formData.timezone}
+                onChange={handleChange}
+              >
+                <option value="America/New_York">Eastern Time (ET)</option>
+                <option value="America/Chicago">Central Time (CT)</option>
+                <option value="America/Denver">Mountain Time (MT)</option>
+                <option value="America/Los_Angeles">Pacific Time (PT)</option>
+                <option value="UTC">UTC</option>
+              </select>
+            </div>
+
+            <div>
+              <label className="label-field">Registration Close Date</label>
+              <input
+                type="datetime-local"
+                name="registration_close"
+                className="input-field"
+                value={formData.registration_close}
+                onChange={handleChange}
+              />
+            </div>
+
             <div className="md:col-span-2">
-              <label className="label-field">Location/Venue *</label>
+              <label className="label-field">Location *</label>
               <input
                 type="text"
                 name="location"
                 className="input-field"
-                placeholder="e.g., Community Sports Complex"
+                placeholder="e.g., Madison Square Garden, New York"
                 value={formData.location}
                 onChange={handleChange}
                 required
@@ -272,93 +374,83 @@ const TournamentForm = () => {
             </div>
 
             <div>
-              <label className="label-field">City</label>
+              <label className="label-field">Maximum Teams</label>
               <input
-                type="text"
-                name="city"
+                type="number"
+                name="max_teams"
                 className="input-field"
-                placeholder="e.g., Los Angeles"
-                value={formData.city}
+                min="2"
+                max="256"
+                value={formData.max_teams}
                 onChange={handleChange}
               />
             </div>
 
             <div>
-              <label className="label-field">State/Province</label>
-              <input
-                type="text"
-                name="state"
-                className="input-field"
-                placeholder="e.g., California"
-                value={formData.state}
+              <label className="label-field">Tournament Format</label>
+              <select
+                name="tournament_format"
+                className="select-field"
+                value={formData.tournament_format || 'single_elimination'}
                 onChange={handleChange}
-              />
-            </div>
-
-            <div className="md:col-span-2">
-              <label className="label-field">Country</label>
-              <input
-                type="text"
-                name="country"
-                className="input-field"
-                placeholder="e.g., USA"
-                value={formData.country}
-                onChange={handleChange}
-              />
+              >
+                <option value="single_elimination">Single Elimination</option>
+                <option value="double_elimination">Double Elimination</option>
+                <option value="round_robin">Round Robin</option>
+              </select>
+              <p className="text-xs text-gray-500 mt-1">
+                Affects how matches are calculated
+              </p>
             </div>
           </div>
         </div>
 
-        {/* Team Registration */}
-        {isEditMode && (
-          <TeamManager
-            tournamentId={id}
-            teams={formData.teams || []}
-            onChange={(teams) => setFormData(prev => ({ ...prev, teams }))}
-          />
-        )}
+        {/* Note about Team Registration */}
+        <div className="card bg-blue-50 border-blue-200">
+          <div className="flex items-start space-x-3">
+            <svg className="w-6 h-6 text-blue-600 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <div>
+              <h3 className="font-semibold text-blue-900 mb-1">Team Registration Process</h3>
+              <p className="text-sm text-blue-800">
+                Teams will apply for this tournament through their player dashboards. You can review and approve team applications after publishing the tournament. Maximum {formData.max_teams} teams can be accepted.
+              </p>
+            </div>
+          </div>
+        </div>
 
         {/* Fields Management */}
-        {isEditMode && (
-          <FieldManager
-            tournamentId={id}
-            fields={formData.fields || []}
-            onChange={(fields) => setFormData(prev => ({ ...prev, fields }))}
-          />
-        )}
+        <FieldManager
+          fields={formData.fields}
+          onChange={(fields) => setFormData(prev => ({ ...prev, fields }))}
+        />
 
         {/* Sponsors Management */}
         <SponsorManager
-          sponsors={formData.sponsors || []}
+          sponsors={formData.sponsors}
           onChange={(sponsors) => setFormData(prev => ({ ...prev, sponsors }))}
         />
 
-        {/* Status Selection */}
+        {/* Publishing Options */}
         <div className="card">
-          <h2 className="text-xl font-bold text-slate mb-4">Status</h2>
+          <h2 className="text-xl font-bold text-slate mb-4">Publishing</h2>
           
-          <div>
-            <label className="label-field">Tournament Status</label>
-            <select
-              name="status"
-              className="select-field"
-              value={formData.status}
+          <label className="flex items-center space-x-3 cursor-pointer">
+            <input
+              type="checkbox"
+              name="is_published"
+              className="w-5 h-5 text-primary focus:ring-primary rounded"
+              checked={formData.is_published}
               onChange={handleChange}
-            >
-              <option value="DRAFT">Draft</option>
-              <option value="PUBLISHED">Published</option>
-              <option value="ONGOING">Ongoing</option>
-              <option value="COMPLETED">Completed</option>
-              <option value="CANCELLED">Cancelled</option>
-            </select>
-            <p className="text-sm text-gray-600 mt-2">
-              {formData.status === 'DRAFT' && 'Tournament is not visible to public'}
-              {formData.status === 'PUBLISHED' && 'Tournament is visible and accepting registrations'}
-              {formData.status === 'ONGOING' && 'Tournament is currently in progress'}
-              {formData.status === 'COMPLETED' && 'Tournament has finished'}
-              {formData.status === 'CANCELLED' && 'Tournament has been cancelled'}
-            </p>
-          </div>
+            />
+            <div>
+              <span className="font-semibold text-slate">Publish Tournament</span>
+              <p className="text-sm text-gray-600">
+                Make this tournament visible to the public
+              </p>
+            </div>
+          </label>
         </div>
 
         {/* Snapshots (only in edit mode) */}
