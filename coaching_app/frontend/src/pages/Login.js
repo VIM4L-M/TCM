@@ -86,7 +86,7 @@ const Login = () => {
       localStorage.setItem("token", "admin-auth");
 
       // navigate to dashboard after a short delay
-      setTimeout(() => navigate("/Dashboard"), 800);
+      navigate("/dashboard" , { replace: true } );
     } else {
       setMessage("❌ Invalid email or password!");
     }
