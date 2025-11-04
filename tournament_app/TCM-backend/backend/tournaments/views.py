@@ -105,7 +105,7 @@ class UserProfileViewSet(viewsets.ModelViewSet):
 # ==================== TOURNAMENT VIEWS ====================
 
 class TournamentViewSet(viewsets.ModelViewSet):
-    queryset = Tournament.objects.all()
+    queryset = Tournament.objects.all().order_by('-created_at')  # Newest first
     filter_backends = [filters.SearchFilter, filters.OrderingFilter]
     search_fields = ['name', 'slug', 'location', 'city']
     ordering_fields = ['created_at', 'start_date', 'name']
@@ -117,7 +117,7 @@ class TournamentViewSet(viewsets.ModelViewSet):
         return TournamentDetailSerializer
     
     def get_queryset(self):
-        queryset = Tournament.objects.all()
+        queryset = Tournament.objects.all().order_by('-created_at')  # Newest first
         
         # Filter by status
         status_param = self.request.query_params.get('status', None)

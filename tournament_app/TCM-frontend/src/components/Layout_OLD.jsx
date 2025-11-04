@@ -5,16 +5,18 @@ import { fetchTournaments } from '../api'
 
 const Layout = () => {
   const location = useLocation()
-  const { isAuthenticated, user, logout, isAdmin, loading } = useAuth()
+  const { isAuthenticated, user, logout, isAdmin } = useAuth()
   const [isSidebarOpen, setIsSidebarOpen] = useState(false)
   const [stats, setStats] = useState({ active: 0, teams: 0, players: 0 })
 
-  // Load stats - useEffect MUST be called before any early returns
+  // Redirect to login if not authenticated
+  if (!isAuthenticated()) {
+    return <Navigate to="/login" replace />
+  }
+
   useEffect(() => {
-    if (!loading && isAuthenticated()) {
-      loadStats()
-    }
-  }, [location.pathname, loading])
+    loadStats()
+  }, [location.pathname])
 
   const loadStats = async () => {
     try {
@@ -30,61 +32,27 @@ const Layout = () => {
     }
   }
 
-  // Show loading state while checking authentication
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-          <p className="mt-4 text-gray-600">Loading...</p>
-        </div>
-      </div>
-    )
-  }
-
-  // Redirect to login if not authenticated
-  if (!isAuthenticated()) {
-    return <Navigate to="/login" replace />
-  }
-
   // Define menu items based on user role
   const getNavItems = () => {
-    // Check if user is admin
-    const isUserAdmin = user?.is_staff || user?.profile?.role === 'DIRECTOR'
-    const userRole = user?.profile?.role
-    
     const commonItems = [
+      { path: '/dashboard', label: 'Dashboard', icon: '�' },
       { path: '/schedule', label: 'Schedule', icon: '🗓️' },
       { path: '/leaderboard', label: 'Leaderboard', icon: '📊' },
       { path: '/spirit', label: 'Spirit', icon: '✨' },
     ]
 
     const adminItems = [
-      { path: '/tournaments', label: 'Tournaments', icon: '🏆' },
+      { path: '/tournaments', label: 'Manage Tournaments', icon: '🏆' },
       { path: '/players', label: 'Players', icon: '👤' },
       { path: '/visitors', label: 'Visitors', icon: '👥' },
     ]
 
-    const playerItems = [
-      { path: '/dashboard', label: 'Dashboard', icon: '🏠' },
-    ]
-    
-    const fanItems = [
-      { path: '/leaderboard', label: 'Leaderboard', icon: '📊' },
-    ]
-
     // Show admin items if user is staff (admin/director)
-    if (isUserAdmin) {
-      return [...adminItems, ...commonItems]
+    if (user?.is_staff || user?.profile?.role === 'DIRECTOR') {
+      return [...commonItems, ...adminItems]
     }
-    
-    // Fan can only see leaderboard
-    if (userRole === 'FAN') {
-      return fanItems
-    }
-    
-    // Players and Captains can see dashboard + common items
-    return [...playerItems, ...commonItems]
+
+    return commonItems
   }
 
   const navItems = getNavItems()
@@ -98,7 +66,7 @@ const Layout = () => {
         <div className="container mx-auto px-4 py-4 flex items-center justify-between">
           <div className="flex items-center space-x-6">
             {/* Logo */}
-            <Link to="/" className="flex items-center space-x-3">
+            <Link to="/dashboard" className="flex items-center space-x-3">
               <div className="w-10 h-10 bg-gradient-to-br from-tournament-blue to-primary-dark rounded-lg flex items-center justify-center shadow-md">
                 <span className="text-white font-bold text-xl">T</span>
               </div>

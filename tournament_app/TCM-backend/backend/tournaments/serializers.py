@@ -234,7 +234,7 @@ class TournamentDetailSerializer(serializers.ModelSerializer):
     class Meta:
         model = Tournament
         fields = '__all__'
-        read_only_fields = ['slug', 'created_by', 'created_at', 'updated_at']
+        read_only_fields = ['created_by', 'created_at', 'updated_at']
 
 
 # ==================== VISITOR SERIALIZERS ====================
