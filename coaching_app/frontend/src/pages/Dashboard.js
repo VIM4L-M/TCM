@@ -31,7 +31,7 @@ function Dashboard() {
 
   // ✅ Optional chaining + default fallback values prevent null errors
   return (
-    <div>
+    <div style={{  width: "100%", height: "100%" }}>
       <h2>Welcome, Programme Manager 👋</h2>
       <Grid container spacing={2} style={{ marginTop: "20px" }}>
         <Grid item xs={12} sm={6} md={3}>

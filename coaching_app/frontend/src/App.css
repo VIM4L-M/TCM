@@ -1,34 +1,29 @@
-*{
-  font-family: comic sans ms;
+/* Global font */
+* {
+  font-family: 'Comic Sans MS', 'Poppins', sans-serif;
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
 }
+
+/* App Layout */
 .app-container {
   display: flex;
   height: 100vh;
-  font-family: 'Poppins', sans-serif;
-  background-color: #f8fafc;
+  width: 100%;
+  background-color: #e9eff8;
+  overflow: hidden;
 }
 
-.main-content {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-}
-
-.page-content {
-  padding: 20px;
-  overflow-y: auto;
-  background-color: #f1f5f9;
-  min-height: calc(100vh - 60px);
-}
-
-
+/* Sidebar */
 .sidebar {
-  width: 240px;
+  width: 250px;
   background-color: #1e3a8a;
   color: white;
   display: flex;
   flex-direction: column;
   padding: 20px;
+  flex-shrink: 0;
 }
 
 .sidebar-logo {
@@ -59,15 +54,25 @@
   color: #fff;
 }
 
+/* Main content area */
+.main-content {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  background-color: #f5f7fa;
+  overflow-y: auto;
+}
 
+/* Navbar */
 .navbar {
   height: 60px;
-  background-color: #fff;
+  background-color: #ffffff;
   display: flex;
   align-items: center;
   justify-content: space-between;
   padding: 0 20px;
   border-bottom: 1px solid #e2e8f0;
+  flex-shrink: 0;
 }
 
 .navbar-right .icon {
@@ -82,7 +87,24 @@
   color: #2563eb;
 }
 
+/* Page content area */
+.page-content {
+  flex: 1;
+  padding: 40px;
+  background-color: #f1f5f9;
+  overflow-y: auto;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  
+}
 
+.page-content > div {
+  width: 100%;
+  max-width: 1200px;
+}
+
+/* Dashboard cards */
 .dashboard-card {
   background-color: #fff;
   border-radius: 10px;
@@ -90,7 +112,7 @@
   display: flex;
   align-items: center;
   gap: 15px;
-  box-shadow: 0 2px 6px rgba(0,0,0,0.08);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
   transition: transform 0.2s ease;
 }
 
@@ -108,4 +130,27 @@
   font-weight: 600;
   margin: 5px 0 0;
   color: #111827;
+}
+
+/* Responsive Fix */
+@media (max-width: 992px) {
+  .app-container {
+    flex-direction: column;
+  }
+
+  .sidebar {
+    width: 100%;
+    flex-direction: row;
+    justify-content: space-around;
+    padding: 10px 0;
+  }
+
+  .main-content {
+    flex: 1;
+    overflow-y: auto;
+  }
+
+  .page-content {
+    padding: 20px;
+  }
 }

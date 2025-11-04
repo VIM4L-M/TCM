@@ -70,7 +70,6 @@ import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import "./Login.css";
 
-
 const Login = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -82,7 +81,12 @@ const Login = () => {
 
     if (email === "admin@tcm.com" && password === "admin123") {
       setMessage("✅ Login successful!");
-      setTimeout(() => navigate("/"), 800); // navigate to main dashboard
+
+      // store authentication token
+      localStorage.setItem("token", "admin-auth");
+
+      // navigate to dashboard after a short delay
+      setTimeout(() => navigate("/Dashboard"), 800);
     } else {
       setMessage("❌ Invalid email or password!");
     }
@@ -91,7 +95,7 @@ const Login = () => {
   return (
     <div className="login-page">
       <div className="login-container">
-        <img src='/logo192.png' alt="Logo" className="login-logo" />
+        <img src="/logo192.png" alt="Logo" className="login-logo" />
         <h2 className="login-title">Coaching Portal Login</h2>
 
         <form onSubmit={handleSubmit}>
@@ -122,7 +126,8 @@ const Login = () => {
         <button
           type="button"
           className="forgot-password"
-          onClick={() => alert("Password reset feature coming soon!")}>
+          onClick={() => alert("Password reset feature coming soon!")}
+        >
           Forgot Password?
         </button>
       </div>
