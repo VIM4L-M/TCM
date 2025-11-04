@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { FaBell, FaUserCircle } from "react-icons/fa";
 import { motion, AnimatePresence } from "framer-motion";
 import "./Navbar.css";
@@ -8,6 +9,7 @@ function Navbar() {
   const [showProfile, setShowProfile] = useState(false);
   const notifRef = useRef();
   const profileRef = useRef();
+  const navigate = useNavigate();
 
   const handleNotifClick = () => {
     setShowNotifications(!showNotifications);
@@ -17,6 +19,13 @@ function Navbar() {
   const handleProfileClick = () => {
     setShowProfile(!showProfile);
     setShowNotifications(false);
+  };
+
+  // ✅ Logout function
+  const handleLogout = () => {
+    localStorage.removeItem("token"); // clear stored token
+    navigate("/login", { replace: true }); // redirect to login
+    window.location.reload(); // ensure full app reset
   };
 
   useEffect(() => {
@@ -71,7 +80,9 @@ function Navbar() {
                 transition={{ duration: 0.25, ease: "easeOut" }}
               >
                 <h4>Programme Manager</h4>
-                <button className="logout-btn">Logout</button>
+                <button className="logout-btn" onClick={handleLogout}>
+                  Logout
+                </button>
               </motion.div>
             )}
           </AnimatePresence>
