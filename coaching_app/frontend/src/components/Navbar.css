@@ -14,6 +14,7 @@
   font-size: 18px;
   font-weight: bold;
   color: #1e293b;
+  margin-top: 30px;
 }
 
 .navbar-icons {
@@ -33,6 +34,13 @@
   color: #2563eb;
 }
 
+.icon-container {
+  position: relative;
+}
+
+/* ===========================
+   🔔 Dropdown Base Styles
+=========================== */
 .dropdown {
   position: absolute;
   top: 55px;
@@ -41,8 +49,9 @@
   border-radius: 10px;
   box-shadow: 0px 5px 15px rgba(0, 0, 0, 0.08);
   padding: 15px;
-  min-width: 220px;
+  min-width: 260px;
   z-index: 1001;
+  transition: all 0.3s ease;
 }
 
 .notification-dropdown {
@@ -57,15 +66,60 @@
 .dropdown h4 {
   font-size: 15px;
   font-weight: 600;
-  margin-bottom: 8px;
+  margin-bottom: 10px;
+  color: #1e293b;
 }
 
+/* ===========================
+   🔔 Notification Styles
+=========================== */
+.notif-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  max-height: 180px;
+  overflow-y: auto;
+}
+
+/* Custom scrollbar for notification list */
+.notif-list::-webkit-scrollbar {
+  width: 6px;
+}
+
+.notif-list::-webkit-scrollbar-thumb {
+  background-color: #cbd5e1;
+  border-radius: 10px;
+}
+
+.notif-item {
+  background: #f8fafc;
+  border-radius: 8px;
+  padding: 10px 12px;
+  font-size: 14px;
+  color: #334155;
+  margin-bottom: 8px;
+  line-height: 1.4;
+  transition: all 0.2s ease;
+  border-left: 3px solid #2563eb;
+}
+
+.notif-item:hover {
+  background: #eff6ff;
+  transform: translateX(3px);
+}
+
+/* Empty state */
 .dropdown p {
   color: #6b7280;
   font-size: 14px;
   margin: 0;
+  text-align: center;
+  padding: 10px 0;
 }
 
+/* ===========================
+   👤 Profile Dropdown Styles
+=========================== */
 .logout-btn {
   background-color: #2563eb;
   color: #fff;
@@ -79,8 +133,4 @@
 
 .logout-btn:hover {
   background-color: #1d4ed8;
-}
-
-.icon-container {
-  position: relative;
 }

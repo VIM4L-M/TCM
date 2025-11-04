@@ -11,6 +11,13 @@ function Navbar() {
   const profileRef = useRef();
   const navigate = useNavigate();
 
+  // 🔔 Static frontend notifications
+  const notifications = [
+    { id: 1, message: "New child profile added successfully." },
+    { id: 2, message: "Attendance report updated for Batch A." },
+    { id: 3, message: "Reminder: Upcoming review meeting tomorrow." },
+  ];
+
   const handleNotifClick = () => {
     setShowNotifications(!showNotifications);
     setShowProfile(false);
@@ -21,11 +28,9 @@ function Navbar() {
     setShowNotifications(false);
   };
 
-  // ✅ Logout function
   const handleLogout = () => {
-    localStorage.removeItem("token"); // clear stored token
-    navigate("/login", { replace: true }); // redirect to login
-    window.location.reload(); // ensure full app reset
+    navigate("/login", { replace: true });
+    window.location.reload();
   };
 
   useEffect(() => {
@@ -48,7 +53,7 @@ function Navbar() {
     <nav className="navbar">
       <h2 className="navbar-title">Coaching Programme Portal</h2>
       <div className="navbar-icons">
-        {/* Notification Icon */}
+        {/* 🔔 Notification Icon */}
         <div className="icon-container" ref={notifRef}>
           <FaBell className="icon" onClick={handleNotifClick} />
           <AnimatePresence>
@@ -61,13 +66,23 @@ function Navbar() {
                 transition={{ duration: 0.25, ease: "easeOut" }}
               >
                 <h4>Notifications</h4>
-                <p>No new notifications</p>
+                {notifications.length > 0 ? (
+                  <ul className="notif-list">
+                    {notifications.map((notif) => (
+                      <li key={notif.id} className="notif-item">
+                        {notif.message}
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p>No new notifications</p>
+                )}
               </motion.div>
             )}
           </AnimatePresence>
         </div>
 
-        {/* Profile Icon */}
+        {/* 👤 Profile Icon */}
         <div className="icon-container" ref={profileRef}>
           <FaUserCircle className="icon" onClick={handleProfileClick} />
           <AnimatePresence>
