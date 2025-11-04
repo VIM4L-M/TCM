@@ -1,3 +1,151 @@
+# 🎯 Project Title: **TCM**  – Tournament and coaching Management System
+
+# 🏆 Overview:
+
+Tournify is a full-stack web application designed to simplify the end-to-end management of sports and e-gaming tournaments. It provides two role-based portals — Admin and Participant — ensuring a smooth experience for both organizers and players.
+
+### For Admins:
+Admins can create and manage tournaments, set rules, track scores, schedule matches, and monitor team progress in real-time through a centralized dashboard.
+
+### For Participants:
+Players or teams can register for tournaments, view match fixtures, track their rankings, and receive instant updates about results and upcoming rounds.
+
+The platform integrates interactive UI, real-time data updates, and responsive design with Tailwind CSS, offering a professional, modern interface for both desktop and mobile users.
+
+# 🏁 Tournament Management
+# 📖 Overview
+
+The Tournament Creation & Setup System (TCA) is a modern, full-stack web application designed to help sports organizations and event administrators efficiently create, manage, and monitor tournaments.
+It provides an interactive Admin Dashboard for creating tournaments, managing fields, updating live scores, registering visitors, and preserving historical data for insights and analytics.
+
+Built using React (Tailwind CSS) for a visually appealing frontend and Django REST Framework for a secure, scalable backend.
+
+# 🚀 Core Features
+### Tournament Dashboard
+
+- Create and manage multiple tournaments from a single admin panel.
+
+- View active, upcoming, and completed tournaments.
+
+- Filter tournaments by date, type, or venue.
+
+### Tournament Details Page
+
+- Add title, description, location, rules, sponsors, and event banners.
+
+- Schedule start and end dates with time slots.
+
+- Upload promotional images and manage visibility status.
+
+### Multi-Field Support
+
+- Define multiple playing fields or courts within a single tournament.
+
+- Assign teams and match schedules per field.
+
+- Real-time updates across all fields.
+
+### Real-Time Updates
+
+- Admins can dynamically update scores, schedules, and live announcements.
+
+- Real-time broadcast of match updates on the participant dashboard.
+
+- Automatic synchronization across frontend views.
+
+### Historical Data Repository
+
+- Archive completed tournaments for record-keeping.
+
+- Access statistics, scores, and winners from past events.
+
+- Generate reports for analytics and performance tracking.
+
+### Visitor Registration
+
+- Allow on-ground visitors or guests to register for access management.
+
+- Generate digital passes or badges.
+
+- Track visitor entry, ticketing, and participation statistics.
+  
+## 🛠️ Tech Stack
+
+| Layer | Technology |
+|-------|-------------|
+| **Frontend** | React.js (Create React App), CSS3 (Grid, Flexbox, Float), Axios, Chart.js |
+| **Backend** | Django, Django REST Framework, JWT Authentication (`rest_framework_simplejwt`) |
+| **Database** | PostgreSQL |
+| **Tools** | Git, Postman, VS Code, Virtual Environment (venv) |
+
+---
+## ⚙️ Installation & Setup
+
+### 1️⃣ Clone the Repository
+```bash
+git clone https://github.com/VIM4L-M/TCM.git
+cd TCM
+cd tournament_app
+```
+
+### 2️⃣ Setup Backend (Django)
+```bash
+cd backend
+python -m venv venv
+venv\Scripts\activate   # For Windows
+pip install -r requirements.txt
+python manage.py migrate
+python manage.py runserver
+```
+Backend runs on http://127.0.0.1:8000/
+### 3️⃣ Setup Frontend (React)
+```bash
+cd ../frontend
+npm install
+npm start
+```
+Frontend runs on http://localhost:3000/
+### 📂 Folder Structure
+```java
+tournament_app/
+├── backend/
+│   ├── manage.py
+│   ├── core/
+│   ├── tournaments/
+│   ├── matches/
+│   ├── visitors/
+│   ├── announcements/
+│   └── history/
+│
+├── frontend/
+│   ├── public/
+│   ├── src/
+│   │   ├── components/
+│   │   ├── pages/
+│   │   ├── App.js
+│   │   ├── App.css
+│   │   └── index.js
+│   └── package.json
+│
+└── README.md
+```
+# 📸 Screenshots
+<img width="1280" height="734" alt="image" src="https://github.com/user-attachments/assets/1af4c3d9-64ad-4c55-be0c-c78953f63503" />
+
+
+
+# 📈 Future Enhancements
+
+- Live Streaming Integration for matches.
+
+- Leaderboard & Bracket View for knockout rounds.
+
+- Push Notifications for score updates.
+
+- AI-Based Team Ranking Prediction.
+
+- Dark Mode Toggle and Mobile-Optimized UI.
+
 # 🧩 Coaching Programme Management System
 
 ##  📖 Overview
@@ -52,8 +200,9 @@ Built with a **React frontend**, **Django REST Framework backend**, and **Postgr
 
 ### 1️⃣ Clone the Repository
 ```bash
-git clone https://github.com/yourusername/coaching-programme-management.git
-cd coaching-programme-management
+git clone https://github.com/VIM4L-M/TCM.git
+cd TCM
+cd coaching_app
 ```
 
 ### 2️⃣ Setup Backend (Django)
