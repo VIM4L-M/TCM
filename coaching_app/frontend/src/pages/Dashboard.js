@@ -37,7 +37,7 @@ function Dashboard() {
         <Grid item xs={12} sm={6} md={3}>
           <DashboardCard
             title="Total Children"
-            value={stats?.total_children ?? 0}
+            value="1200"
             icon={<FaUserFriends />}
             color="#3b82f6"
           />
@@ -45,7 +45,7 @@ function Dashboard() {
         <Grid item xs={12} sm={6} md={3}>
           <DashboardCard
             title="Active Sessions"
-            value={stats?.active_sessions ?? 0}
+            value="28"
             icon={<FaClipboardList />}
             color="#22c55e"
           />
@@ -53,7 +53,7 @@ function Dashboard() {
         <Grid item xs={12} sm={6} md={3}>
           <DashboardCard
             title="Coaches"
-            value={stats?.total_coaches ?? 0}
+            value="150"
             icon={<FaUserTie />}
             color="#f59e0b"
           />
@@ -61,7 +61,7 @@ function Dashboard() {
         <Grid item xs={12} sm={6} md={3}>
           <DashboardCard
             title="Communities"
-            value={stats?.total_communities ?? 0}
+            value="5"
             icon={<FaChartPie />}
             color="#ef4444"
           />

@@ -1,5 +1,13 @@
 import React, { useState } from "react";
-import { Button, Table, TableBody, TableCell, TableHead, TableRow, Paper } from "@mui/material";
+import {
+  Button,
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableRow,
+  Paper,
+} from "@mui/material";
 import ChildProfileForm from "../components/ChildProfileForm";
 
 function ChildProfiles() {
@@ -9,18 +17,27 @@ function ChildProfiles() {
     { id: 2, name: "Sneha R", age: 13, community: "CIT Nagar", gender: "F" },
   ]);
 
+  // Add new child dynamically
+  const handleAddChild = (newChild) => {
+    const newEntry = {
+      id: children.length + 1,
+      ...newChild,
+    };
+    setChildren([...children, newEntry]);
+  };
+
   return (
     <div>
       <h2>Child Profiles</h2>
       <Button
         variant="contained"
-        sx={{ mt: 2, mb: 2, backgroundColor: "#1e40af" }}
+        sx={{ mt: 2, mb: 2, backgroundColor: "#1e40af", width: "150px"}}
         onClick={() => setShowForm(!showForm)}
       >
         {showForm ? "Close Form" : "Add Child"}
       </Button>
 
-      {showForm && <ChildProfileForm setChildren={setChildren} />}
+      {showForm && <ChildProfileForm onAddChild={handleAddChild} />}
 
       <Paper sx={{ overflow: "hidden" }}>
         <Table>
