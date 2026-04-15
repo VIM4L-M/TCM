@@ -25,7 +25,7 @@ Built using React (Tailwind CSS) for a visually appealing frontend and Django RE
 
 - Create and manage multiple tournaments from a single admin panel.
 
-- View active, upcoming, and completed tournaments.
+- View ongoing, upcoming, and completed tournaments.
 
 - Filter tournaments by date, type, or venue.
 
